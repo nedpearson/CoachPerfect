@@ -1,0 +1,30 @@
+{
+  "id": "coachperfect",
+  "name": "CoachPerfect",
+  "description": "Coaching intelligence platform — Business Health Score, AI Session Prep, ROI Reports, Offline-First PWA",
+  "version": "1.0.0",
+  "entry": "server.js",
+  "command": "node server.js",
+  "cwd": ".",
+  "port": 3008,
+  "autoStart": true,
+  "healthCheck": {
+    "url": "http://localhost:3008/health",
+    "interval": 30,
+    "timeout": 5
+  },
+  "env": {
+    "PORT": "3008",
+    "WS_PORT": "3579",
+    "NODE_ENV": "production"
+  },
+  "tags": ["coaching", "pwa", "business"],
+  "icon": "app/public/icon-192.png",
+  "links": {
+    "app": "http://localhost:3008",
+    "health": "http://localhost:3008/health",
+    "api": "http://localhost:3008/api/info",
+    "diagnostic": "http://localhost:3008/diagnostic.html",
+    "dashboard": "http://localhost:3008/dashboard.html"
+  }
+}
