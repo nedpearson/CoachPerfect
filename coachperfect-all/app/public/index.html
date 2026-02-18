@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Coach Perfect — The coaching intelligence platform that turns business coaching into measurable, provable results.">
+  <title>Coach Perfect — Coaching Intelligence Platform</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #06060b;
+      --bg-card: #0e0e16;
+      --bg-elevated: #16161f;
+      --border: #1e1e2e;
+      --text: #eaeaf0;
+      --text-dim: #8b8ba0;
+      --text-muted: #55556a;
+      --accent: #f97316;
+      --accent-light: #fb923c;
+      --accent-glow: rgba(249, 115, 22, 0.08);
+      --accent-glow-strong: rgba(249, 115, 22, 0.2);
+      --green: #22c55e;
+      --blue: #3b82f6;
+      --purple: #a855f7;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Outfit', -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ─── UTILITY ─── */
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .accent { color: var(--accent); }
+    .dim { color: var(--text-dim); }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 16px 0;
+      background: rgba(6, 6, 11, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid rgba(30, 30, 46, 0.5);
+    }
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .logo {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      text-decoration: none;
+      color: var(--text);
+    }
+
+    .logo span { color: var(--accent); }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 32px;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+
+    .nav-links a:hover { color: var(--text); }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.25s;
+      border: none;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #fff;
+      box-shadow: 0 4px 20px rgba(249, 115, 22, 0.25);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-light);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 30px rgba(249, 115, 22, 0.35);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--accent);
+      background: var(--accent-glow);
+    }
+
+    .btn-large {
+      padding: 16px 32px;
+      font-size: 16px;
+      border-radius: 12px;
+    }
+
+    /* ─── HERO ─── */
+    .hero {
+      padding: 160px 0 100px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(circle, rgba(249,115,22,0.06) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 16px;
+      background: var(--accent-glow);
+      border: 1px solid rgba(249, 115, 22, 0.15);
+      border-radius: 100px;
+      font-size: 13px;
+      color: var(--accent);
+      font-weight: 500;
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      font-size: clamp(42px, 6vw, 72px);
+      font-weight: 800;
+      line-height: 1.08;
+      letter-spacing: -2px;
+      max-width: 800px;
+      margin: 0 auto 24px;
+    }
+
+    .hero p {
+      font-size: 19px;
+      color: var(--text-dim);
+      max-width: 580px;
+      margin: 0 auto 40px;
+      line-height: 1.6;
+      font-weight: 400;
+    }
+
+    .hero-ctas {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .hero-proof {
+      margin-top: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      flex-wrap: wrap;
+    }
+
+    .hero-stat {
+      text-align: center;
+    }
+
+    .hero-stat-num {
+      font-size: 28px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .hero-stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 2px;
+    }
+
+    .hero-divider {
+      width: 1px;
+      height: 40px;
+      background: var(--border);
+    }
+
+    /* ─── DASHBOARD PREVIEW ─── */
+    .preview-section {
+      padding: 0 0 100px;
+    }
+
+    .preview-frame {
+      max-width: 1000px;
+      margin: 0 auto;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      overflow: hidden;
+      box-shadow: 0 40px 80px rgba(0,0,0,0.4);
+      position: relative;
+    }
+
+    .preview-topbar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 12px 16px;
+      background: var(--bg-elevated);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .preview-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .preview-body {
+      padding: 32px;
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr 1fr;
+      gap: 16px;
+    }
+
+    .preview-card {
+      background: var(--bg-elevated);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+
+    .preview-card-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .preview-card-value {
+      font-size: 32px;
+      font-weight: 700;
+    }
+
+    .preview-card-change {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .preview-radar {
+      grid-column: span 2;
+      grid-row: span 2;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ─── PROBLEM SECTION ─── */
+    .problem {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .section-label {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: var(--accent);
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .section-heading {
+      font-size: clamp(32px, 4vw, 48px);
+      font-weight: 700;
+      letter-spacing: -1px;
+      line-height: 1.15;
+      max-width: 700px;
+      margin-bottom: 20px;
+    }
+
+    .section-desc {
+      font-size: 17px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      max-width: 600px;
+      margin-bottom: 48px;
+    }
+
+    .pain-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+
+    .pain-card {
+      padding: 28px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      transition: border-color 0.3s;
+    }
+
+    .pain-card:hover { border-color: var(--accent); }
+
+    .pain-icon {
+      font-size: 28px;
+      margin-bottom: 16px;
+    }
+
+    .pain-title {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .pain-desc {
+      font-size: 14px;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+
+    /* ─── FEATURES ─── */
+    .features {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .feature-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+      margin-bottom: 80px;
+    }
+
+    .feature-row:last-child { margin-bottom: 0; }
+    .feature-row.reverse { direction: rtl; }
+    .feature-row.reverse > * { direction: ltr; }
+
+    .feature-text .feature-badge {
+      display: inline-block;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      font-weight: 600;
+      padding: 4px 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+    }
+
+    .feature-text h3 {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .feature-text p {
+      font-size: 16px;
+      color: var(--text-dim);
+      line-height: 1.7;
+      margin-bottom: 24px;
+    }
+
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    .feature-list li::before {
+      content: '→';
+      color: var(--accent);
+      font-weight: 600;
+    }
+
+    .feature-visual {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      min-height: 320px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .bhs-demo {
+      text-align: center;
+    }
+
+    .bhs-number {
+      font-size: 96px;
+      font-weight: 800;
+      color: var(--accent);
+      letter-spacing: -4px;
+      line-height: 1;
+    }
+
+    .bhs-label {
+      font-size: 14px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      margin-top: 8px;
+    }
+
+    .bhs-bar {
+      width: 240px;
+      height: 6px;
+      background: var(--bg);
+      border-radius: 3px;
+      margin: 16px auto 0;
+      overflow: hidden;
+    }
+
+    .bhs-bar-fill {
+      height: 100%;
+      width: 74%;
+      background: linear-gradient(90deg, var(--accent), var(--accent-light));
+      border-radius: 3px;
+      animation: barGrow 2s ease;
+    }
+
+    @keyframes barGrow { from { width: 0; } }
+
+    .radar-demo {
+      width: 280px;
+      height: 280px;
+    }
+
+    /* ─── FREE DIAGNOSTIC CTA ─── */
+    .diagnostic-cta {
+      padding: 100px 0;
+      text-align: center;
+      border-top: 1px solid var(--border);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .diagnostic-cta::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(249,115,22,0.05) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .diagnostic-cta h2 {
+      font-size: clamp(28px, 4vw, 42px);
+      font-weight: 700;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+
+    .diagnostic-cta p {
+      font-size: 17px;
+      color: var(--text-dim);
+      max-width: 500px;
+      margin: 0 auto 36px;
+      line-height: 1.6;
+    }
+
+    .diagnostic-steps {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      margin-top: 48px;
+      flex-wrap: wrap;
+    }
+
+    .diag-step {
+      text-align: center;
+    }
+
+    .diag-step-num {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--accent-glow-strong);
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 16px;
+      margin-bottom: 10px;
+    }
+
+    .diag-step-text {
+      font-size: 14px;
+      color: var(--text-dim);
+    }
+
+    .diag-arrow {
+      font-size: 20px;
+      color: var(--text-muted);
+    }
+
+    /* ─── PRICING ─── */
+    .pricing {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 48px;
+    }
+
+    .price-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px 24px;
+      position: relative;
+      transition: border-color 0.3s, transform 0.3s;
+    }
+
+    .price-card:hover {
+      transform: translateY(-4px);
+    }
+
+    .price-card.featured {
+      border-color: var(--accent);
+      background: linear-gradient(180deg, rgba(249,115,22,0.04) 0%, var(--bg-card) 40%);
+    }
+
+    .price-card.featured::before {
+      content: 'Most Popular';
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 4px 16px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 100px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .price-name {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .price-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+
+    .price-amount {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -2px;
+      margin-bottom: 4px;
+    }
+
+    .price-amount .currency { font-size: 22px; vertical-align: super; color: var(--text-dim); }
+    .price-amount .period { font-size: 14px; color: var(--text-muted); font-weight: 400; }
+
+    .price-annual {
+      font-size: 12px;
+      color: var(--green);
+      margin-bottom: 24px;
+    }
+
+    .price-features {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 28px;
+    }
+
+    .price-features li {
+      font-size: 13px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      line-height: 1.4;
+    }
+
+    .price-features li::before {
+      content: '✓';
+      color: var(--green);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .price-btn {
+      width: 100%;
+      text-align: center;
+      justify-content: center;
+    }
+
+    /* ─── SOCIAL PROOF ─── */
+    .proof {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .testimonial-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin-top: 48px;
+    }
+
+    .testimonial {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 28px;
+    }
+
+    .testimonial-text {
+      font-size: 15px;
+      line-height: 1.7;
+      color: var(--text-dim);
+      margin-bottom: 20px;
+      font-style: italic;
+    }
+
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .testimonial-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 16px;
+    }
+
+    .testimonial-name {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .testimonial-role {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ─── EMAIL CAPTURE ─── */
+    .email-capture {
+      padding: 100px 0;
+      border-top: 1px solid var(--border);
+      text-align: center;
+      position: relative;
+    }
+
+    .email-capture::before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 100%;
+      height: 300px;
+      background: linear-gradient(180deg, transparent, rgba(249,115,22,0.03));
+      pointer-events: none;
+    }
+
+    .email-form {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .email-input {
+      flex: 1;
+      padding: 16px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      color: var(--text);
+      font-family: inherit;
+      font-size: 15px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .email-input:focus { border-color: var(--accent); }
+    .email-input::placeholder { color: var(--text-muted); }
+
+    .email-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 12px;
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      padding: 48px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-copy {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 24px;
+      list-style: none;
+    }
+
+    .footer-links a {
+      font-size: 13px;
+      color: var(--text-muted);
+      text-decoration: none;
+      transition: color 0.2s;
+    }
+
+    .footer-links a:hover { color: var(--text); }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      .pain-grid { grid-template-columns: 1fr; }
+      .feature-row { grid-template-columns: 1fr; gap: 32px; }
+      .feature-row.reverse { direction: ltr; }
+      .pricing-grid { grid-template-columns: 1fr 1fr; }
+      .testimonial-grid { grid-template-columns: 1fr; }
+      .preview-body { grid-template-columns: 1fr 1fr; }
+      .nav-links { display: none; }
+    }
+
+    @media (max-width: 600px) {
+      .pricing-grid { grid-template-columns: 1fr; }
+      .hero-proof { gap: 20px; }
+      .hero-divider { display: none; }
+      .footer-inner { flex-direction: column; gap: 16px; text-align: center; }
+      .email-form { flex-direction: column; }
+    }
+
+    /* ─── ANIMATIONS ─── */
+    .fade-up {
+      opacity: 0;
+      transform: translateY(30px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .fade-up.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ─── ADMIN ─── */
+    .admin-trigger { cursor: pointer; -webkit-user-select: none; user-select: none; }
+    .admin-badge {
+      display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px;
+      background: rgba(249,115,22,0.12); border: 1px solid rgba(249,115,22,0.25);
+      border-radius: 100px; font-size: 10px; color: var(--accent); font-weight: 600;
+      letter-spacing: 0.5px; text-transform: uppercase; margin-left: 10px; vertical-align: middle;
+    }
+    .admin-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px);
+      z-index: 9999; display: none; align-items: center; justify-content: center;
+    }
+    .admin-overlay.open { display: flex; }
+    .admin-modal {
+      background: var(--bg-card); border: 1px solid var(--border); border-radius: 16px;
+      padding: 32px; width: 100%; max-width: 380px; position: relative;
+    }
+    .admin-modal h3 { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+    .admin-modal .sub { font-size: 13px; color: var(--text-muted); margin-bottom: 20px; }
+    .admin-modal input {
+      width: 100%; padding: 12px 14px; background: var(--bg); border: 1px solid var(--border);
+      border-radius: 10px; color: var(--text); font-family: inherit; font-size: 14px;
+      outline: none; margin-bottom: 10px; box-sizing: border-box;
+    }
+    .admin-modal input:focus { border-color: var(--accent); }
+    .admin-modal input::placeholder { color: var(--text-muted); }
+    .admin-modal .btn-login {
+      width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none;
+      border-radius: 10px; font-family: inherit; font-size: 14px; font-weight: 600;
+      cursor: pointer; margin-top: 4px;
+    }
+    .admin-modal .btn-login:hover { background: var(--accent-light); }
+    .admin-modal .error { color: var(--red); font-size: 13px; margin-top: 8px; display: none; }
+    .admin-modal .close {
+      position: absolute; top: 12px; right: 16px; background: none; border: none;
+      color: var(--text-muted); font-size: 20px; cursor: pointer;
+    }
+    .admin-bar {
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+      padding: 8px 24px; background: rgba(249,115,22,0.08); border-top: 1px solid rgba(249,115,22,0.2);
+      display: none; align-items: center; justify-content: space-between; font-size: 12px;
+    }
+    .admin-bar.active { display: flex; }
+    .admin-bar .info { color: var(--accent); font-weight: 500; }
+    .admin-bar .logout {
+      background: none; border: 1px solid rgba(249,115,22,0.3); color: var(--accent);
+      padding: 4px 12px; border-radius: 6px; font-family: inherit; font-size: 11px;
+      cursor: pointer; font-weight: 500;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="container nav-inner">
+    <a href="#" class="logo admin-trigger" id="adminTrigger">Coach<span>Perfect</span><span class="admin-badge" id="adminBadge" style="display:none;">Admin</span></a>
+    <ul class="nav-links">
+      <li><a href="#features">Features</a></li>
+      <li><a href="#pricing">Pricing</a></li>
+      <li><a href="#proof">Results</a></li>
+      <li><a href="/diagnostic.html" class="btn btn-primary">Free Diagnostic →</a></li>
+    </ul>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">🔥 Now in early access — founding member pricing available</div>
+    <h1 class="fade-up">Turn coaching into <span class="accent">measurable</span> results</h1>
+    <p class="fade-up">The intelligence platform that gives business coaches a diagnostic, a dashboard, and proof of ROI — so clients stay, boards approve, and your practice grows.</p>
+    <div class="hero-ctas fade-up">
+      <a href="/diagnostic.html" class="btn btn-primary btn-large">Take Free Diagnostic →</a>
+      <a href="#features" class="btn btn-ghost btn-large">See How It Works</a>
+    </div>
+    <div class="hero-proof fade-up">
+      <div class="hero-stat">
+        <div class="hero-stat-num">48</div>
+        <div class="hero-stat-label">Diagnostic Questions</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">8</div>
+        <div class="hero-stat-label">Business Categories</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">10 min</div>
+        <div class="hero-stat-label">To First Insights</div>
+      </div>
+      <div class="hero-divider"></div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">3:1</div>
+        <div class="hero-stat-label">Average ROI</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- DASHBOARD PREVIEW -->
+<section class="preview-section">
+  <div class="container">
+    <div class="preview-frame fade-up">
+      <div class="preview-topbar">
+        <div class="preview-dot" style="background: #ef4444;"></div>
+        <div class="preview-dot" style="background: #eab308;"></div>
+        <div class="preview-dot" style="background: #22c55e;"></div>
+      </div>
+      <div class="preview-body">
+        <div class="preview-card">
+          <div class="preview-card-label">Business Health Score</div>
+          <div class="preview-card-value accent">74</div>
+          <div class="preview-card-change" style="color: var(--green);">↑ +6 from baseline</div>
+        </div>
+        <div class="preview-card">
+          <div class="preview-card-label">Active Clients</div>
+          <div class="preview-card-value">12</div>
+          <div class="preview-card-change dim">3 sessions this week</div>
+        </div>
+        <div class="preview-card">
+          <div class="preview-card-label">Client Retention</div>
+          <div class="preview-card-value" style="color: var(--green);">94%</div>
+          <div class="preview-card-change dim">Industry avg: 71%</div>
+        </div>
+        <div class="preview-card">
+          <div class="preview-card-label">Coaching ROI</div>
+          <div class="preview-card-value" style="color: var(--blue);">4.2x</div>
+          <div class="preview-card-change dim">$126K documented</div>
+        </div>
+        <div class="preview-card preview-radar">
+          <svg class="radar-demo" viewBox="0 0 280 280">
+            <g transform="translate(140,140)">
+              <!-- Grid -->
+              <polygon points="0,-110 95,-55 95,55 0,110 -95,55 -95,-55" fill="none" stroke="#1e1e2e" stroke-width="1"/>
+              <polygon points="0,-82 71,-41 71,41 0,82 -71,41 -71,-41" fill="none" stroke="#1e1e2e" stroke-width="1"/>
+              <polygon points="0,-55 48,-28 48,28 0,55 -48,28 -48,-28" fill="none" stroke="#1e1e2e" stroke-width="1"/>
+              <polygon points="0,-27 24,-14 24,14 0,27 -24,14 -24,-14" fill="none" stroke="#1e1e2e" stroke-width="1"/>
+              <!-- Labels -->
+              <text x="0" y="-120" text-anchor="middle" fill="#8b8ba0" font-size="10" font-family="Outfit">Strategy</text>
+              <text x="105" y="-50" text-anchor="start" fill="#8b8ba0" font-size="10" font-family="Outfit">Financial</text>
+              <text x="105" y="60" text-anchor="start" fill="#8b8ba0" font-size="10" font-family="Outfit">Operations</text>
+              <text x="0" y="128" text-anchor="middle" fill="#8b8ba0" font-size="10" font-family="Outfit">People</text>
+              <text x="-105" y="60" text-anchor="end" fill="#8b8ba0" font-size="10" font-family="Outfit">Marketing</text>
+              <text x="-105" y="-50" text-anchor="end" fill="#8b8ba0" font-size="10" font-family="Outfit">Leadership</text>
+              <!-- Data (baseline) -->
+              <polygon points="0,-55 48,-28 71,28 0,55 -48,28 -71,-28" fill="rgba(139,139,160,0.08)" stroke="#555570" stroke-width="1.5" stroke-dasharray="4"/>
+              <!-- Data (current) -->
+              <polygon points="0,-82 71,-41 71,41 0,66 -55,28 -82,-41" fill="rgba(249,115,22,0.1)" stroke="#f97316" stroke-width="2"/>
+              <!-- Dots -->
+              <circle cx="0" cy="-82" r="4" fill="#f97316"/>
+              <circle cx="71" cy="-41" r="4" fill="#f97316"/>
+              <circle cx="71" cy="41" r="4" fill="#f97316"/>
+              <circle cx="0" cy="66" r="4" fill="#f97316"/>
+              <circle cx="-55" cy="28" r="4" fill="#f97316"/>
+              <circle cx="-82" cy="-41" r="4" fill="#f97316"/>
+            </g>
+          </svg>
+        </div>
+        <div class="preview-card">
+          <div class="preview-card-label">Tasks Completed</div>
+          <div class="preview-card-value">87%</div>
+          <div class="preview-card-change" style="color: var(--green);">↑ 12% this month</div>
+        </div>
+        <div class="preview-card">
+          <div class="preview-card-label">Next Session</div>
+          <div class="preview-card-value" style="font-size: 18px;">Sarah Mitchell</div>
+          <div class="preview-card-change dim">Tomorrow, 10:00 AM</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PROBLEM -->
+<section class="problem">
+  <div class="container">
+    <div class="section-label fade-up">The Problem</div>
+    <h2 class="section-heading fade-up">Coaching is a $100B industry built on gut feel</h2>
+    <p class="section-desc fade-up">Most coaches can't prove their impact. Clients wonder if it's working. Boards question the investment. The best coaches know they're making a difference — they just can't show it.</p>
+    <div class="pain-grid">
+      <div class="pain-card fade-up">
+        <div class="pain-icon">📊</div>
+        <div class="pain-title">No baseline data</div>
+        <div class="pain-desc">Coaching starts without measuring where the client is. Progress is invisible because there's no starting point to compare against.</div>
+      </div>
+      <div class="pain-card fade-up">
+        <div class="pain-icon">🎯</div>
+        <div class="pain-title">No structured tracking</div>
+        <div class="pain-desc">Action items live in notebooks and email threads. There's no system connecting coaching sessions to business outcomes.</div>
+      </div>
+      <div class="pain-card fade-up">
+        <div class="pain-icon">💰</div>
+        <div class="pain-title">No ROI proof</div>
+        <div class="pain-desc">When the CFO asks "what did we get for $50K in coaching?", neither the coach nor the client can answer with data.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features" id="features">
+  <div class="container">
+    <div class="section-label fade-up">The Solution</div>
+    <h2 class="section-heading fade-up">Everything a coach needs. Nothing they don't.</h2>
+    <p class="section-desc fade-up">Coach Perfect turns every coaching engagement into a data-driven, measurable, provable growth story.</p>
+
+    <div class="feature-row fade-up">
+      <div class="feature-text">
+        <div class="feature-badge" style="background: var(--accent-glow); color: var(--accent);">Core</div>
+        <h3>Business Health Score</h3>
+        <p>One number that captures everything. 48 questions across 8 business categories produce a composite score from 0-100 with industry benchmarks.</p>
+        <ul class="feature-list">
+          <li>Instant baseline on day one</li>
+          <li>Before/after comparison that proves impact</li>
+          <li>Radar chart shows strengths and gaps at a glance</li>
+          <li>Industry percentile benchmarking</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div class="bhs-demo">
+          <div class="bhs-number">74</div>
+          <div class="bhs-label">Business Health Score</div>
+          <div class="bhs-bar"><div class="bhs-bar-fill"></div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-row reverse fade-up">
+      <div class="feature-text">
+        <div class="feature-badge" style="background: rgba(59,130,246,0.1); color: var(--blue);">Intelligence</div>
+        <h3>AI Session Prep</h3>
+        <p>Before every session, Coach Perfect generates a brief: what happened last time, what's changed, what to focus on, and what to watch for.</p>
+        <ul class="feature-list">
+          <li>Auto-generated from diagnostic + KPI + task data</li>
+          <li>Pattern detection across sessions</li>
+          <li>Saves 20+ minutes of prep per session</li>
+          <li>Makes every session feel deeply prepared</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div style="width: 100%; font-size: 14px; line-height: 1.8;">
+          <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent); margin-bottom: 12px; font-weight: 600;">AI Session Brief</div>
+          <div style="color: var(--text-dim); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px;">
+            <strong style="color: var(--text);">BHS:</strong> 68 → 74 (+6). Strongest gain in Operations.
+          </div>
+          <div style="color: var(--text-dim); border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px;">
+            <strong style="color: var(--text);">Focus:</strong> Financial score dropped 3 pts. Cash reserves below target.
+          </div>
+          <div style="color: var(--text-dim);">
+            <strong style="color: var(--text);">Watch:</strong> Third consecutive avoidance of financial discussion.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="feature-row fade-up">
+      <div class="feature-text">
+        <div class="feature-badge" style="background: rgba(34,197,94,0.1); color: var(--green);">Proof</div>
+        <h3>ROI Reports</h3>
+        <p>Board-ready PDF reports that quantify the dollar impact of coaching. Connected to real KPIs, real diagnostics, real outcomes.</p>
+        <ul class="feature-list">
+          <li>Auto-calculated from client's own data</li>
+          <li>Before/after with timeline visualization</li>
+          <li>Exportable PDF with your branding</li>
+          <li>The document that gets coaching renewed</li>
+        </ul>
+      </div>
+      <div class="feature-visual">
+        <div style="width: 100%; text-align: center;">
+          <div style="font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px;">Coaching ROI Summary</div>
+          <div style="font-size: 52px; font-weight: 800; color: var(--green); letter-spacing: -2px;">$186K</div>
+          <div style="font-size: 14px; color: var(--text-dim); margin-top: 8px;">documented business impact</div>
+          <div style="display: flex; justify-content: center; gap: 24px; margin-top: 24px;">
+            <div>
+              <div style="font-size: 24px; font-weight: 700; color: var(--accent);">4.2x</div>
+              <div style="font-size: 11px; color: var(--text-muted);">ROI</div>
+            </div>
+            <div>
+              <div style="font-size: 24px; font-weight: 700;">+22</div>
+              <div style="font-size: 11px; color: var(--text-muted);">BHS Points</div>
+            </div>
+            <div>
+              <div style="font-size: 24px; font-weight: 700; color: var(--green);">94%</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Retention</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FREE DIAGNOSTIC CTA -->
+<section class="diagnostic-cta" id="diagnostic">
+  <div class="container">
+    <div class="section-label fade-up">Free Tool</div>
+    <h2 class="fade-up">See it in action — on your own business</h2>
+    <p class="fade-up">Take the Coach Health Check. 20 questions about your coaching practice. Instant score. Zero commitment. Then imagine giving this to every client.</p>
+    <a href="/diagnostic.html" class="btn btn-primary btn-large fade-up">Take the Free Diagnostic →</a>
+    <div class="diagnostic-steps fade-up">
+      <div class="diag-step">
+        <div class="diag-step-num">1</div>
+        <div class="diag-step-text">Answer 20 questions<br><span style="color: var(--text-muted);">~5 minutes</span></div>
+      </div>
+      <div class="diag-arrow">→</div>
+      <div class="diag-step">
+        <div class="diag-step-num">2</div>
+        <div class="diag-step-text">Get your score<br><span style="color: var(--text-muted);">Instant results</span></div>
+      </div>
+      <div class="diag-arrow">→</div>
+      <div class="diag-step">
+        <div class="diag-step-num">3</div>
+        <div class="diag-step-text">See recommendations<br><span style="color: var(--text-muted);">Prioritized gaps</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section class="pricing" id="pricing">
+  <div class="container">
+    <div style="text-align: center;">
+      <div class="section-label fade-up">Pricing</div>
+      <h2 class="section-heading fade-up" style="margin: 0 auto 8px; text-align: center;">Simple, transparent pricing</h2>
+      <p class="section-desc fade-up" style="margin: 0 auto;">Start free. Upgrade when the value is obvious.</p>
+    </div>
+    <div class="pricing-grid">
+      <div class="price-card fade-up">
+        <div class="price-name">Free</div>
+        <div class="price-desc">Try the core loop</div>
+        <div class="price-amount"><span class="currency">$</span>0<span class="period">/forever</span></div>
+        <div class="price-annual">&nbsp;</div>
+        <ul class="price-features">
+          <li>1 client</li>
+          <li>Core diagnostic</li>
+          <li>Business Health Score</li>
+          <li>3 session notes</li>
+          <li>5 templates</li>
+        </ul>
+        <a href="#" class="btn btn-ghost price-btn">Get Started</a>
+      </div>
+
+      <div class="price-card fade-up">
+        <div class="price-name">Starter</div>
+        <div class="price-desc">Solo coach, growing</div>
+        <div class="price-amount"><span class="currency">$</span>49<span class="period">/mo</span></div>
+        <div class="price-annual">$39/mo billed annually — save $120/yr</div>
+        <ul class="price-features">
+          <li>10 clients</li>
+          <li>Unlimited session notes</li>
+          <li>Before/after diagnostics</li>
+          <li>Task tracking</li>
+          <li>Win journal</li>
+          <li>Basic benchmarking</li>
+        </ul>
+        <a href="#" class="btn btn-ghost price-btn">Start Free Trial</a>
+      </div>
+
+      <div class="price-card featured fade-up">
+        <div class="price-name">Professional</div>
+        <div class="price-desc">Established coach</div>
+        <div class="price-amount"><span class="currency">$</span>149<span class="period">/mo</span></div>
+        <div class="price-annual">$119/mo billed annually — save $360/yr</div>
+        <ul class="price-features">
+          <li>25 clients</li>
+          <li>AI Session Prep briefs</li>
+          <li>360° feedback</li>
+          <li>ROI reports (branded)</li>
+          <li>Full benchmarking</li>
+          <li>Voice-to-text notes</li>
+          <li>CRM & pipeline</li>
+          <li>Remove branding</li>
+        </ul>
+        <a href="#" class="btn btn-primary price-btn">Start Free Trial</a>
+      </div>
+
+      <div class="price-card fade-up">
+        <div class="price-name">Business</div>
+        <div class="price-desc">Coaching firms</div>
+        <div class="price-amount"><span class="currency">$</span>349<span class="period">/mo</span></div>
+        <div class="price-annual">$279/mo billed annually — save $840/yr</div>
+        <ul class="price-features">
+          <li>Unlimited clients</li>
+          <li>Everything in Professional</li>
+          <li>Financial modeling suite</li>
+          <li>Email marketing</li>
+          <li>API access</li>
+          <li>Team diagnostics</li>
+          <li>Custom questions</li>
+          <li>Zapier integration</li>
+        </ul>
+        <a href="#" class="btn btn-ghost price-btn">Contact Sales</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SOCIAL PROOF -->
+<section class="proof" id="proof">
+  <div class="container">
+    <div style="text-align: center;">
+      <div class="section-label fade-up">Results</div>
+      <h2 class="section-heading fade-up" style="margin: 0 auto; text-align: center;">Coaches who use data win</h2>
+    </div>
+    <div class="testimonial-grid">
+      <div class="testimonial fade-up">
+        <div class="testimonial-text">"My clients used to wonder if coaching was working. Now they can see it. The before/after diagnostic comparison is the single most powerful tool in my practice."</div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar" style="background: rgba(249,115,22,0.15); color: var(--accent);">ME</div>
+          <div>
+            <div class="testimonial-name">Meredith E.</div>
+            <div class="testimonial-role">Executive Coach, 20+ years</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial fade-up">
+        <div class="testimonial-text">"I raised my rates 30% after showing prospects my ROI data. One CEO looked at my dashboard and said 'this is what I've been looking for.' Closed on the spot."</div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar" style="background: rgba(59,130,246,0.15); color: var(--blue);">RC</div>
+          <div>
+            <div class="testimonial-name">Robert C.</div>
+            <div class="testimonial-role">Business Coach, Baton Rouge</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial fade-up">
+        <div class="testimonial-text">"The session prep AI brief alone saves me 20 minutes per client per week. Multiply that by 15 clients and I got an entire day back. The ROI on the subscription is absurd."</div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar" style="background: rgba(34,197,94,0.15); color: var(--green);">KP</div>
+          <div>
+            <div class="testimonial-name">Karen P.</div>
+            <div class="testimonial-role">Leadership Coach, Houston</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- EMAIL CAPTURE -->
+<section class="email-capture">
+  <div class="container">
+    <div class="section-label fade-up">Early Access</div>
+    <h2 class="section-heading fade-up" style="text-align: center; margin: 0 auto 8px;">Join founding members</h2>
+    <p class="section-desc fade-up" style="margin: 0 auto 36px; text-align: center;">First 20 coaches get 30% off for life. No credit card required.</p>
+    <form class="email-form fade-up" id="emailForm" onsubmit="handleEmail(event)">
+      <input class="email-input" type="email" placeholder="you@example.com" required id="emailInput">
+      <button type="submit" class="btn btn-primary btn-large">Get Early Access</button>
+    </form>
+    <div class="email-note fade-up">No spam. Just launch updates and your founding member invite.</div>
+    <div id="emailSuccess" style="display:none; margin-top: 20px; padding: 16px; background: rgba(34,197,94,0.1); border: 1px solid var(--green); border-radius: 10px; color: var(--green); font-weight: 500;">
+      ✓ You're on the list! We'll send your founding member invite soon.
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container footer-inner">
+    <div class="footer-copy">© 2026 Coach Perfect. All rights reserved.</div>
+    <ul class="footer-links">
+      <li><a href="#">Privacy</a></li>
+      <li><a href="#">Terms</a></li>
+      <li><a href="#">Contact</a></li>
+    </ul>
+  </div>
+</footer>
+
+<script>
+// Intersection Observer for fade-in
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+    }
+  });
+}, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+// Email capture
+function handleEmail(e) {
+  e.preventDefault();
+  const email = document.getElementById('emailInput').value;
+
+  // Store locally (replace with your API)
+  const emails = JSON.parse(localStorage.getItem('cp_waitlist') || '[]');
+  emails.push({ email, date: new Date().toISOString() });
+  localStorage.setItem('cp_waitlist', JSON.stringify(emails));
+
+  document.getElementById('emailForm').style.display = 'none';
+  document.getElementById('emailSuccess').style.display = 'block';
+}
+</script>
+<!-- ADMIN MODAL -->
+<div class="admin-overlay" id="adminOverlay">
+  <div class="admin-modal">
+    <button class="close" onclick="closeAdmin()">&times;</button>
+    <h3>🔒 Admin Access</h3>
+    <div class="sub">Super admin login</div>
+    <input type="email" id="adminEmail" placeholder="Email" autocomplete="email">
+    <input type="password" id="adminPass" placeholder="Password" autocomplete="current-password">
+    <button class="btn-login" onclick="adminLogin()">Sign In</button>
+    <div class="error" id="adminError">Invalid credentials</div>
+  </div>
+</div>
+
+<!-- ADMIN BAR -->
+<div class="admin-bar" id="adminBar">
+  <span class="info">🟠 Admin Mode — Full access active</span>
+  <button class="logout" onclick="adminLogout()">Sign Out</button>
+</div>
+
+<script>
+// Admin auth
+const ADMIN_HASH = '4afef0956d4eec58a2bb7accf5ccc5886ba1f999109f94dc96f64b86cd49a710';
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Triple-click logo to open admin panel
+let clickCount = 0, clickTimer;
+document.getElementById('adminTrigger').addEventListener('click', (e) => {
+  e.preventDefault();
+  clickCount++;
+  clearTimeout(clickTimer);
+  if (clickCount >= 3) {
+    clickCount = 0;
+    if (isAdmin()) return; // already logged in
+    document.getElementById('adminOverlay').classList.add('open');
+    document.getElementById('adminEmail').focus();
+  }
+  clickTimer = setTimeout(() => clickCount = 0, 600);
+});
+
+async function adminLogin() {
+  const email = document.getElementById('adminEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('adminPass').value;
+  const hash = await sha256(email + ':' + pass);
+  if (hash === ADMIN_HASH) {
+    localStorage.setItem('cp_admin', JSON.stringify({ email, ts: Date.now() }));
+    closeAdmin();
+    activateAdmin();
+  } else {
+    document.getElementById('adminError').style.display = 'block';
+    document.getElementById('adminPass').value = '';
+  }
+}
+
+function closeAdmin() {
+  document.getElementById('adminOverlay').classList.remove('open');
+  document.getElementById('adminError').style.display = 'none';
+}
+
+function adminLogout() {
+  localStorage.removeItem('cp_admin');
+  document.getElementById('adminBadge').style.display = 'none';
+  document.getElementById('adminBar').classList.remove('active');
+}
+
+function isAdmin() {
+  try {
+    const data = JSON.parse(localStorage.getItem('cp_admin'));
+    return data && data.email && (Date.now() - data.ts < 30 * 86400000); // 30 day session
+  } catch { return false; }
+}
+
+function activateAdmin() {
+  document.getElementById('adminBadge').style.display = 'inline-flex';
+  document.getElementById('adminBar').classList.add('active');
+  // Skip email gates, show all features, etc.
+  document.querySelectorAll('.btn-ghost, .btn-primary').forEach(btn => {
+    if (btn.textContent.includes('Start Free Trial') || btn.textContent.includes('Get Started') || btn.textContent.includes('Contact Sales')) {
+      btn.textContent = '✓ Active';
+      btn.style.opacity = '0.6';
+      btn.style.pointerEvents = 'none';
+    }
+  });
+}
+
+// Enter key in password field
+document.getElementById('adminPass')?.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') adminLogin();
+});
+
+// Escape closes modal
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeAdmin();
+});
+
+// Check on load
+if (isAdmin()) activateAdmin();
+</script>
+</body>
+</html>

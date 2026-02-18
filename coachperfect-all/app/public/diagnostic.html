@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Health Diagnostic — Coach Perfect</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #06060b;
+      --bg-card: #0e0e16;
+      --bg-elevated: #16161f;
+      --border: #1e1e2e;
+      --text: #eaeaf0;
+      --text-dim: #8b8ba0;
+      --text-muted: #55556a;
+      --accent: #f97316;
+      --accent-light: #fb923c;
+      --accent-glow: rgba(249,115,22,0.08);
+      --green: #22c55e;
+      --green-dim: rgba(34,197,94,0.1);
+      --red: #ef4444;
+      --red-dim: rgba(239,68,68,0.1);
+      --yellow: #eab308;
+      --yellow-dim: rgba(234,179,8,0.1);
+      --blue: #3b82f6;
+      --purple: #a855f7;
+      --radius: 16px;
+    }
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body { font-family:'Outfit',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; -webkit-font-smoothing:antialiased; }
+
+    /* ─── LAYOUT ─── */
+    .shell { max-width:720px; margin:0 auto; padding:24px; min-height:100vh; display:flex; flex-direction:column; }
+
+    /* ─── HEADER ─── */
+    .d-header { text-align:center; padding:48px 0 32px; }
+    .d-header .logo { font-size:20px; font-weight:700; margin-bottom:24px; }
+    .d-header .logo span { color:var(--accent); }
+    .d-header h1 { font-size:clamp(28px,5vw,40px); font-weight:800; letter-spacing:-1px; line-height:1.15; margin-bottom:12px; }
+    .d-header p { font-size:16px; color:var(--text-dim); line-height:1.6; max-width:500px; margin:0 auto; }
+
+    /* ─── PROGRESS ─── */
+    .progress-bar { margin:0 0 32px; }
+    .progress-meta { display:flex; justify-content:space-between; font-size:13px; color:var(--text-dim); margin-bottom:8px; }
+    .progress-meta .cat { color:var(--accent); font-weight:600; }
+    .progress-track { height:4px; background:var(--bg-elevated); border-radius:2px; overflow:hidden; }
+    .progress-fill { height:100%; background:linear-gradient(90deg,var(--accent),var(--accent-light)); border-radius:2px; transition:width 0.4s ease; }
+
+    /* ─── QUESTION CARD ─── */
+    .q-card { flex:1; display:flex; flex-direction:column; }
+    .q-number { font-size:12px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-muted); margin-bottom:12px; }
+    .q-category { display:inline-block; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:1px; padding:4px 10px; border-radius:6px; margin-bottom:16px; }
+    .q-text { font-size:22px; font-weight:600; line-height:1.4; letter-spacing:-0.3px; margin-bottom:32px; }
+
+    /* ─── ANSWER OPTIONS ─── */
+    .options { display:flex; flex-direction:column; gap:10px; margin-bottom:32px; }
+    .option {
+      padding:16px 20px;
+      background:var(--bg-card);
+      border:1.5px solid var(--border);
+      border-radius:12px;
+      font-size:15px;
+      cursor:pointer;
+      transition:all 0.2s;
+      display:flex;
+      align-items:center;
+      gap:14px;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    .option:hover { border-color:var(--accent); background:var(--accent-glow); }
+    .option.selected { border-color:var(--accent); background:var(--accent-glow); }
+    .option .dot {
+      width:20px; height:20px; border-radius:50%; border:2px solid var(--border);
+      flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all 0.2s;
+    }
+    .option.selected .dot { border-color:var(--accent); background:var(--accent); }
+    .option.selected .dot::after { content:''; width:8px; height:8px; border-radius:50%; background:#fff; }
+    .option .score-hint { margin-left:auto; font-size:12px; color:var(--text-muted); font-family:'JetBrains Mono',monospace; }
+
+    /* ─── NAV BUTTONS ─── */
+    .q-nav { display:flex; gap:12px; margin-top:auto; padding:24px 0; }
+    .q-nav .btn {
+      flex:1; padding:14px; border-radius:12px; font-family:inherit; font-size:15px; font-weight:600;
+      cursor:pointer; transition:all 0.2s; border:none; text-align:center;
+    }
+    .btn-back { background:var(--bg-elevated); color:var(--text-dim); border:1px solid var(--border) !important; }
+    .btn-back:hover { border-color:var(--accent) !important; color:var(--text); }
+    .btn-next { background:var(--accent); color:#fff; box-shadow:0 4px 20px rgba(249,115,22,0.25); }
+    .btn-next:hover { background:var(--accent-light); }
+    .btn-next:disabled { opacity:0.4; cursor:not-allowed; }
+
+    /* ─── INTRO SCREEN ─── */
+    .intro { text-align:center; flex:1; display:flex; flex-direction:column; justify-content:center; }
+    .intro-categories { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin:32px 0; text-align:left; }
+    .intro-cat {
+      padding:14px 16px; background:var(--bg-card); border:1px solid var(--border); border-radius:10px;
+      display:flex; align-items:center; gap:10px; font-size:14px;
+    }
+    .intro-cat .ic-icon { font-size:20px; }
+    .intro-cat .ic-name { font-weight:500; }
+    .intro-cat .ic-count { font-size:12px; color:var(--text-muted); margin-left:auto; }
+
+    .intro-meta { display:flex; justify-content:center; gap:32px; margin:24px 0; }
+    .intro-meta-item { text-align:center; }
+    .intro-meta-item .val { font-size:24px; font-weight:700; color:var(--accent); }
+    .intro-meta-item .lbl { font-size:12px; color:var(--text-muted); }
+
+    /* ─── RESULTS ─── */
+    .results { text-align:center; }
+    .results h2 { font-size:32px; font-weight:800; letter-spacing:-1px; margin-bottom:8px; }
+
+    .score-hero { margin:32px 0; }
+    .score-big { font-size:96px; font-weight:800; color:var(--accent); letter-spacing:-4px; line-height:1; }
+    .score-label { font-size:14px; color:var(--text-muted); text-transform:uppercase; letter-spacing:2px; margin-top:4px; }
+    .score-bar-wrap { max-width:300px; margin:16px auto 0; }
+    .score-bar-track { height:8px; background:var(--bg-elevated); border-radius:4px; overflow:hidden; }
+    .score-bar-fill { height:100%; border-radius:4px; transition:width 1.5s ease; }
+
+    .grade-badge {
+      display:inline-block; padding:6px 20px; border-radius:100px; font-size:14px; font-weight:600;
+      margin-top:16px;
+    }
+
+    /* Radar */
+    .radar-section { margin:40px 0; }
+    .radar-container { display:flex; justify-content:center; }
+    .radar-container svg { max-width:360px; width:100%; }
+
+    /* Category Breakdown */
+    .breakdown { margin:40px 0; text-align:left; }
+    .breakdown-title { font-size:18px; font-weight:600; margin-bottom:16px; text-align:center; }
+    .cat-row {
+      display:flex; align-items:center; gap:14px; padding:14px 16px;
+      background:var(--bg-card); border:1px solid var(--border); border-radius:10px; margin-bottom:8px;
+    }
+    .cat-icon { font-size:20px; width:32px; text-align:center; }
+    .cat-name { font-size:14px; font-weight:500; flex:1; }
+    .cat-score { font-size:18px; font-weight:700; min-width:36px; text-align:right; }
+    .cat-bar-wrap { width:80px; }
+    .cat-bar-track { height:4px; background:var(--bg-elevated); border-radius:2px; overflow:hidden; }
+    .cat-bar-fill { height:100%; border-radius:2px; }
+
+    /* Recommendations */
+    .recs { margin:40px 0; text-align:left; }
+    .recs-title { font-size:18px; font-weight:600; margin-bottom:16px; text-align:center; }
+    .rec-card {
+      padding:20px; background:var(--bg-card); border:1px solid var(--border); border-radius:12px; margin-bottom:10px;
+    }
+    .rec-priority {
+      display:inline-block; font-size:10px; text-transform:uppercase; letter-spacing:1px; font-weight:600;
+      padding:3px 8px; border-radius:4px; margin-bottom:8px;
+    }
+    .rec-text { font-size:15px; line-height:1.6; }
+    .rec-impact { font-size:12px; color:var(--text-muted); margin-top:8px; }
+
+    /* CTA */
+    .results-cta {
+      margin:40px 0; padding:32px; background:var(--bg-card); border:1px solid var(--accent);
+      border-radius:var(--radius); text-align:center;
+    }
+    .results-cta h3 { font-size:22px; font-weight:700; margin-bottom:8px; }
+    .results-cta p { font-size:14px; color:var(--text-dim); margin-bottom:20px; line-height:1.6; }
+    .results-cta .btn-cta {
+      display:inline-block; padding:14px 32px; background:var(--accent); color:#fff; border:none;
+      border-radius:12px; font-family:inherit; font-size:16px; font-weight:600; cursor:pointer;
+      text-decoration:none; transition:all 0.2s;
+    }
+    .results-cta .btn-cta:hover { background:var(--accent-light); transform:translateY(-1px); }
+
+    .email-row { display:flex; gap:10px; max-width:400px; margin:0 auto; }
+    .email-input {
+      flex:1; padding:14px 16px; background:var(--bg-elevated); border:1px solid var(--border);
+      border-radius:10px; color:var(--text); font-family:inherit; font-size:14px; outline:none;
+    }
+    .email-input:focus { border-color:var(--accent); }
+    .email-input::placeholder { color:var(--text-muted); }
+
+    #emailSuccess {
+      display:none; margin-top:16px; padding:12px; background:var(--green-dim);
+      border:1px solid var(--green); border-radius:10px; color:var(--green); font-size:14px; font-weight:500;
+    }
+
+    /* ─── HIDDEN ─── */
+    .hidden { display:none !important; }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width:600px) {
+      .intro-categories { grid-template-columns:1fr; }
+      .score-big { font-size:72px; }
+      .email-row { flex-direction:column; }
+    }
+
+    /* ─── TRANSITIONS ─── */
+    .fade-enter { opacity:0; transform:translateX(20px); }
+    .fade-active { opacity:1; transform:translateX(0); transition:all 0.3s ease; }
+
+    /* ─── ADMIN ─── */
+    .admin-trigger { cursor:pointer; -webkit-user-select:none; user-select:none; }
+    .admin-badge {
+      display:inline-flex; align-items:center; gap:4px; padding:2px 8px;
+      background:rgba(249,115,22,0.12); border:1px solid rgba(249,115,22,0.25);
+      border-radius:100px; font-size:10px; color:var(--accent); font-weight:600;
+      letter-spacing:0.5px; text-transform:uppercase; margin-left:8px; vertical-align:middle;
+    }
+    .admin-overlay {
+      position:fixed; inset:0; background:rgba(0,0,0,0.7); backdrop-filter:blur(8px);
+      z-index:9999; display:none; align-items:center; justify-content:center;
+    }
+    .admin-overlay.open { display:flex; }
+    .admin-modal {
+      background:var(--bg-card); border:1px solid var(--border); border-radius:16px;
+      padding:32px; width:100%; max-width:380px; position:relative;
+    }
+    .admin-modal h3 { font-size:18px; font-weight:600; margin-bottom:4px; color:var(--text); }
+    .admin-modal .sub { font-size:13px; color:var(--text-muted); margin-bottom:20px; }
+    .admin-modal input {
+      width:100%; padding:12px 14px; background:var(--bg); border:1px solid var(--border);
+      border-radius:10px; color:var(--text); font-family:inherit; font-size:14px;
+      outline:none; margin-bottom:10px; box-sizing:border-box;
+    }
+    .admin-modal input:focus { border-color:var(--accent); }
+    .admin-modal input::placeholder { color:var(--text-muted); }
+    .admin-modal .btn-login {
+      width:100%; padding:12px; background:var(--accent); color:#fff; border:none;
+      border-radius:10px; font-family:inherit; font-size:14px; font-weight:600; cursor:pointer;
+    }
+    .admin-modal .error { color:#ef4444; font-size:13px; margin-top:8px; display:none; }
+    .admin-modal .close {
+      position:absolute; top:12px; right:16px; background:none; border:none;
+      color:var(--text-muted); font-size:20px; cursor:pointer;
+    }
+    .admin-bar {
+      position:fixed; bottom:0; left:0; right:0; z-index:100;
+      padding:8px 24px; background:rgba(249,115,22,0.08); border-top:1px solid rgba(249,115,22,0.2);
+      display:none; align-items:center; justify-content:space-between; font-size:12px;
+    }
+    .admin-bar.active { display:flex; }
+    .admin-bar .info { color:var(--accent); font-weight:500; }
+    .admin-bar .logout {
+      background:none; border:1px solid rgba(249,115,22,0.3); color:var(--accent);
+      padding:4px 12px; border-radius:6px; font-family:inherit; font-size:11px;
+      cursor:pointer; font-weight:500;
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell" id="app">
+  <!-- All screens rendered by JS -->
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// DIAGNOSTIC DATA — 48 Questions, 8 Categories
+// ═══════════════════════════════════════════════════
+
+const CATEGORIES = [
+  { id:'strategy', name:'Strategy & Vision', icon:'🎯', color:'#f97316' },
+  { id:'financial', name:'Financial Health', icon:'💰', color:'#22c55e' },
+  { id:'operations', name:'Operations', icon:'⚙️', color:'#3b82f6' },
+  { id:'people', name:'People & Culture', icon:'👥', color:'#a855f7' },
+  { id:'marketing', name:'Marketing & Sales', icon:'📣', color:'#eab308' },
+  { id:'leadership', name:'Leadership', icon:'🧭', color:'#ec4899' },
+  { id:'innovation', name:'Innovation & Growth', icon:'🚀', color:'#06b6d4' },
+  { id:'systems', name:'Systems & Technology', icon:'🔧', color:'#8b5cf6' },
+];
+
+const QUESTIONS = [
+  // STRATEGY (6)
+  { cat:'strategy', text:'How clearly defined is your 3-year business vision?' },
+  { cat:'strategy', text:'How well does your team understand the company\'s strategic priorities?' },
+  { cat:'strategy', text:'How regularly do you review and adjust your business strategy?' },
+  { cat:'strategy', text:'How effectively are your goals translated into actionable quarterly plans?' },
+  { cat:'strategy', text:'How well does your competitive positioning differentiate you in the market?' },
+  { cat:'strategy', text:'How aligned is your daily decision-making with your long-term strategy?' },
+  // FINANCIAL (6)
+  { cat:'financial', text:'How confident are you in your cash flow forecasting accuracy?' },
+  { cat:'financial', text:'How healthy are your profit margins compared to industry benchmarks?' },
+  { cat:'financial', text:'How diversified are your revenue streams?' },
+  { cat:'financial', text:'How well do you track and manage your operating expenses?' },
+  { cat:'financial', text:'How many months of cash reserves does your business maintain?' },
+  { cat:'financial', text:'How effectively do you use financial data to make business decisions?' },
+  // OPERATIONS (6)
+  { cat:'operations', text:'How well documented are your core business processes?' },
+  { cat:'operations', text:'How efficiently does your team handle daily operations without your direct involvement?' },
+  { cat:'operations', text:'How effectively do you manage your supply chain or vendor relationships?' },
+  { cat:'operations', text:'How well do you track and improve key operational metrics?' },
+  { cat:'operations', text:'How scalable are your current operations if revenue doubled?' },
+  { cat:'operations', text:'How quickly can you adapt operations when market conditions change?' },
+  // PEOPLE (6)
+  { cat:'people', text:'How satisfied and engaged are your employees overall?' },
+  { cat:'people', text:'How effective is your hiring process at attracting top talent?' },
+  { cat:'people', text:'How well do you retain your best performers?' },
+  { cat:'people', text:'How clear are roles, responsibilities, and career paths for each team member?' },
+  { cat:'people', text:'How strong is your company culture and team morale?' },
+  { cat:'people', text:'How effectively do you handle underperformance and conflict?' },
+  // MARKETING (6)
+  { cat:'marketing', text:'How consistently does your marketing generate qualified leads?' },
+  { cat:'marketing', text:'How well do you understand your ideal customer profile?' },
+  { cat:'marketing', text:'How effective is your sales process at converting prospects to customers?' },
+  { cat:'marketing', text:'How strong is your brand recognition in your target market?' },
+  { cat:'marketing', text:'How well do you track marketing ROI across channels?' },
+  { cat:'marketing', text:'How effectively do you use customer feedback to improve your offering?' },
+  // LEADERSHIP (6)
+  { cat:'leadership', text:'How effectively do you delegate to your leadership team?' },
+  { cat:'leadership', text:'How well do you manage your own time and energy as a leader?' },
+  { cat:'leadership', text:'How regularly do you seek feedback on your leadership effectiveness?' },
+  { cat:'leadership', text:'How well do you develop future leaders within your organization?' },
+  { cat:'leadership', text:'How effectively do you communicate the company vision to all stakeholders?' },
+  { cat:'leadership', text:'How well do you make difficult decisions under pressure?' },
+  // INNOVATION (6)
+  { cat:'innovation', text:'How actively do you invest in new products, services, or market opportunities?' },
+  { cat:'innovation', text:'How well does your organization embrace change and experimentation?' },
+  { cat:'innovation', text:'How effectively do you monitor industry trends and emerging threats?' },
+  { cat:'innovation', text:'How strong is your pipeline of new ideas and growth initiatives?' },
+  { cat:'innovation', text:'How willing is your team to take calculated risks?' },
+  { cat:'innovation', text:'How well do you learn from failures and iterate quickly?' },
+  // SYSTEMS (6)
+  { cat:'systems', text:'How well does your technology stack support your business needs?' },
+  { cat:'systems', text:'How effectively do you use data and analytics in decision-making?' },
+  { cat:'systems', text:'How secure and protected is your business data and customer information?' },
+  { cat:'systems', text:'How well integrated are your key business systems (CRM, accounting, etc.)?' },
+  { cat:'systems', text:'How effectively do you automate repetitive tasks and processes?' },
+  { cat:'systems', text:'How prepared is your business for a technology failure or cybersecurity incident?' },
+];
+
+const ANSWERS = [
+  { label:'Not at all / Never', score:1 },
+  { label:'Rarely / Minimal', score:2 },
+  { label:'Sometimes / Developing', score:3 },
+  { label:'Often / Solid', score:4 },
+  { label:'Always / Exceptional', score:5 },
+];
+
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+
+let screen = 'intro'; // intro | question | results
+let currentQ = 0;
+let answers = new Array(QUESTIONS.length).fill(null);
+
+// ═══════════════════════════════════════════════════
+// RENDER
+// ═══════════════════════════════════════════════════
+
+function render() {
+  const app = document.getElementById('app');
+  switch (screen) {
+    case 'intro': app.innerHTML = renderIntro(); break;
+    case 'question': app.innerHTML = renderQuestion(); break;
+    case 'results': app.innerHTML = renderResults(); break;
+  }
+}
+
+function renderIntro() {
+  return `
+    <div class="d-header">
+      <div class="logo admin-trigger" id="adminTrigger">Coach<span>Perfect</span><span class="admin-badge" id="adminBadge" style="display:none;">Admin</span></div>
+    </div>
+    <div class="intro">
+      <h1 style="font-size:clamp(28px,5vw,38px); font-weight:800; letter-spacing:-1px; margin-bottom:12px;">
+        Business Health<br>Diagnostic
+      </h1>
+      <p style="font-size:16px; color:var(--text-dim); line-height:1.6; max-width:480px; margin:0 auto;">
+        48 questions. 8 categories. 10 minutes.<br>Get your Business Health Score with actionable recommendations.
+      </p>
+      <div class="intro-meta">
+        <div class="intro-meta-item"><div class="val">48</div><div class="lbl">Questions</div></div>
+        <div class="intro-meta-item"><div class="val">8</div><div class="lbl">Categories</div></div>
+        <div class="intro-meta-item"><div class="val">~10</div><div class="lbl">Minutes</div></div>
+      </div>
+      <div class="intro-categories">
+        ${CATEGORIES.map(c => `
+          <div class="intro-cat">
+            <div class="ic-icon">${c.icon}</div>
+            <div class="ic-name">${c.name}</div>
+            <div class="ic-count">6 Q's</div>
+          </div>
+        `).join('')}
+      </div>
+      <div class="q-nav" style="max-width:400px; margin:0 auto;">
+        <button class="btn btn-next" onclick="startDiagnostic()" style="flex:1;">
+          Start Diagnostic →
+        </button>
+      </div>
+      <p style="font-size:12px; color:var(--text-muted); margin-top:12px;">Free. No account required. Results are instant.</p>
+    </div>
+  `;
+}
+
+function renderQuestion() {
+  const q = QUESTIONS[currentQ];
+  const cat = CATEGORIES.find(c => c.id === q.cat);
+  const catIndex = CATEGORIES.findIndex(c => c.id === q.cat);
+  const qInCat = QUESTIONS.filter((qq,i) => qq.cat === q.cat && i <= currentQ).length;
+  const totalInCat = QUESTIONS.filter(qq => qq.cat === q.cat).length;
+  const pct = ((currentQ + 1) / QUESTIONS.length * 100).toFixed(0);
+  const selected = answers[currentQ];
+
+  return `
+    <div class="d-header" style="padding:24px 0 16px;">
+      <div class="logo admin-trigger" id="adminTrigger">Coach<span>Perfect</span><span class="admin-badge" id="adminBadge" style="display:none;">Admin</span></div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-meta">
+        <span class="cat">${cat.icon} ${cat.name} (${qInCat}/${totalInCat})</span>
+        <span>${currentQ + 1} of ${QUESTIONS.length}</span>
+      </div>
+      <div class="progress-track">
+        <div class="progress-fill" style="width:${pct}%"></div>
+      </div>
+    </div>
+    <div class="q-card">
+      <div class="q-category" style="background:${cat.color}15; color:${cat.color};">${cat.name}</div>
+      <div class="q-text">${q.text}</div>
+      <div class="options">
+        ${ANSWERS.map((a, i) => `
+          <div class="option ${selected === i ? 'selected' : ''}" onclick="selectAnswer(${i})">
+            <div class="dot"></div>
+            <span>${a.label}</span>
+            <span class="score-hint">${a.score}/5</span>
+          </div>
+        `).join('')}
+      </div>
+      <div class="q-nav">
+        <button class="btn btn-back" onclick="prevQuestion()" ${currentQ === 0 ? 'style="visibility:hidden"' : ''}>← Back</button>
+        <button class="btn btn-next" onclick="nextQuestion()" ${selected === null ? 'disabled' : ''}>
+          ${currentQ === QUESTIONS.length - 1 ? 'See Results →' : 'Next →'}
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+function renderResults() {
+  const scores = calculateScores();
+  const overall = scores.overall;
+  const grade = getGrade(overall);
+
+  // Sort categories by score for recommendations
+  const sorted = [...scores.categories].sort((a,b) => a.score - b.score);
+  const weakest = sorted.slice(0, 3);
+  const strongest = sorted.slice(-2);
+
+  return `
+    <div class="d-header" style="padding:24px 0 16px;">
+      <div class="logo admin-trigger" id="adminTrigger">Coach<span>Perfect</span><span class="admin-badge" id="adminBadge" style="display:none;">Admin</span></div>
+    </div>
+    <div class="results">
+      <h2>Your Business Health Score</h2>
+      <p style="color:var(--text-dim); font-size:15px;">Based on your responses across 8 business categories</p>
+
+      <div class="score-hero">
+        <div class="score-big">${overall}</div>
+        <div class="score-label">out of 100</div>
+        <div class="score-bar-wrap">
+          <div class="score-bar-track">
+            <div class="score-bar-fill" style="width:${overall}%; background:${grade.color};"></div>
+          </div>
+        </div>
+        <div class="grade-badge" style="background:${grade.color}18; color:${grade.color};">${grade.label}</div>
+      </div>
+
+      <!-- RADAR CHART -->
+      <div class="radar-section">
+        <div class="radar-container">
+          ${renderRadar(scores.categories)}
+        </div>
+      </div>
+
+      <!-- CATEGORY BREAKDOWN -->
+      <div class="breakdown">
+        <div class="breakdown-title">Category Breakdown</div>
+        ${scores.categories.map(c => {
+          const col = c.score >= 75 ? 'var(--green)' : c.score >= 50 ? 'var(--yellow)' : 'var(--red)';
+          return `
+            <div class="cat-row">
+              <div class="cat-icon">${c.icon}</div>
+              <div class="cat-name">${c.name}</div>
+              <div class="cat-bar-wrap">
+                <div class="cat-bar-track">
+                  <div class="cat-bar-fill" style="width:${c.score}%; background:${col};"></div>
+                </div>
+              </div>
+              <div class="cat-score" style="color:${col};">${c.score}</div>
+            </div>
+          `;
+        }).join('')}
+      </div>
+
+      <!-- RECOMMENDATIONS -->
+      <div class="recs">
+        <div class="recs-title">Top Recommendations</div>
+        ${weakest.map((c, i) => `
+          <div class="rec-card">
+            <div class="rec-priority" style="background:${i === 0 ? 'var(--red-dim)' : 'var(--yellow-dim)'}; color:${i === 0 ? 'var(--red)' : 'var(--yellow)'};">
+              ${i === 0 ? '🔴 Urgent' : '🟡 Important'}
+            </div>
+            <div class="rec-text">${getRecommendation(c)}</div>
+            <div class="rec-impact">Improving ${c.name} by 15 points could unlock ${getImpactEstimate(c)} in annual value.</div>
+          </div>
+        `).join('')}
+
+        <div class="rec-card" style="border-color:var(--green);">
+          <div class="rec-priority" style="background:var(--green-dim); color:var(--green);">🟢 Strength</div>
+          <div class="rec-text">Your strongest area is <strong>${strongest[strongest.length-1].name}</strong> (score: ${strongest[strongest.length-1].score}). This is a competitive advantage — leverage it in your positioning and client communications.</div>
+        </div>
+      </div>
+
+      <!-- CTA -->
+      <div class="results-cta">
+        <h3>Ready to improve these scores?</h3>
+        <p>Coach Perfect turns this diagnostic into an ongoing measurement system. Track progress, prove ROI, and show your clients exactly how they're improving.</p>
+        <form onsubmit="captureEmail(event)" style="margin-bottom:16px;">
+          <div class="email-row">
+            <input class="email-input" type="email" placeholder="you@example.com" required id="resultEmail">
+            <button type="submit" class="btn-cta" style="white-space:nowrap;">Get Early Access</button>
+          </div>
+        </form>
+        <div id="emailSuccess">✓ You're on the list! We'll send your results and founding member invite.</div>
+        <p style="font-size:12px; color:var(--text-muted);">Founding members get 30% off for life. No credit card required.</p>
+      </div>
+
+      <!-- SHARE -->
+      <div style="margin:24px 0; text-align:center;">
+        <button onclick="downloadResults()" style="padding:12px 24px; background:var(--bg-elevated); border:1px solid var(--border); border-radius:10px; color:var(--text); font-family:inherit; font-size:14px; font-weight:500; cursor:pointer;">
+          📄 Download Results PDF
+        </button>
+      </div>
+    </div>
+  `;
+}
+
+// ═══════════════════════════════════════════════════
+// RADAR CHART (SVG)
+// ═══════════════════════════════════════════════════
+
+function renderRadar(categories) {
+  const cx = 180, cy = 180, r = 130;
+  const n = categories.length;
+
+  function polarToXY(angle, radius) {
+    const a = (angle - 90) * Math.PI / 180;
+    return { x: cx + radius * Math.cos(a), y: cy + radius * Math.sin(a) };
+  }
+
+  function polygon(radius, cls, extra='') {
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const p = polarToXY(i * 360 / n, radius);
+      pts.push(`${p.x},${p.y}`);
+    }
+    return `<polygon points="${pts.join(' ')}" ${cls} ${extra}/>`;
+  }
+
+  // Grid rings
+  let grid = '';
+  for (let ring = 1; ring <= 4; ring++) {
+    grid += polygon(r * ring / 4, 'fill="none" stroke="#1e1e2e" stroke-width="1"');
+  }
+
+  // Axis lines
+  let axes = '';
+  for (let i = 0; i < n; i++) {
+    const p = polarToXY(i * 360 / n, r);
+    axes += `<line x1="${cx}" y1="${cy}" x2="${p.x}" y2="${p.y}" stroke="#1e1e2e" stroke-width="1"/>`;
+  }
+
+  // Labels
+  let labels = '';
+  for (let i = 0; i < n; i++) {
+    const p = polarToXY(i * 360 / n, r + 24);
+    const anchor = p.x < cx - 5 ? 'end' : p.x > cx + 5 ? 'start' : 'middle';
+    labels += `<text x="${p.x}" y="${p.y + 4}" text-anchor="${anchor}" fill="#8b8ba0" font-size="11" font-family="Outfit">${categories[i].icon} ${categories[i].score}</text>`;
+  }
+
+  // Data polygon
+  const dataPts = categories.map((c, i) => {
+    const p = polarToXY(i * 360 / n, r * c.score / 100);
+    return `${p.x},${p.y}`;
+  }).join(' ');
+
+  // Data dots
+  let dots = '';
+  categories.forEach((c, i) => {
+    const p = polarToXY(i * 360 / n, r * c.score / 100);
+    dots += `<circle cx="${p.x}" cy="${p.y}" r="4" fill="${c.rawColor}"/>`;
+  });
+
+  return `
+    <svg viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg">
+      ${grid}
+      ${axes}
+      <polygon points="${dataPts}" fill="rgba(249,115,22,0.12)" stroke="#f97316" stroke-width="2.5"/>
+      ${dots}
+      ${labels}
+    </svg>
+  `;
+}
+
+// ═══════════════════════════════════════════════════
+// SCORING
+// ═══════════════════════════════════════════════════
+
+function calculateScores() {
+  const catScores = CATEGORIES.map(cat => {
+    const qs = QUESTIONS.map((q, i) => ({ ...q, index: i })).filter(q => q.cat === cat.id);
+    const total = qs.reduce((sum, q) => sum + (answers[q.index] !== null ? ANSWERS[answers[q.index]].score : 0), 0);
+    const maxPossible = qs.length * 5;
+    const score = Math.round((total / maxPossible) * 100);
+    return { ...cat, score, rawColor: cat.color, total, maxPossible };
+  });
+
+  const overall = Math.round(catScores.reduce((s, c) => s + c.score, 0) / catScores.length);
+
+  return { overall, categories: catScores };
+}
+
+function getGrade(score) {
+  if (score >= 85) return { label: 'Excellent — Top 10%', color: 'var(--green)' };
+  if (score >= 70) return { label: 'Strong — Above Average', color: '#22c55e' };
+  if (score >= 55) return { label: 'Developing — Room to Grow', color: 'var(--yellow)' };
+  if (score >= 40) return { label: 'Needs Attention — Significant Gaps', color: 'var(--accent)' };
+  return { label: 'Critical — Immediate Action Needed', color: 'var(--red)' };
+}
+
+function getRecommendation(cat) {
+  const recs = {
+    strategy: `Your <strong>${cat.name}</strong> score of ${cat.score} suggests your business direction may not be clearly defined or communicated. Start by documenting a 1-page strategic plan with 3-year vision, 1-year goals, and quarterly milestones — then share it with every team member.`,
+    financial: `Your <strong>${cat.name}</strong> score of ${cat.score} indicates financial blind spots. Implement a weekly 15-minute cash flow review, build 90-day cash reserves, and create a simple dashboard tracking revenue, expenses, profit margin, and AR aging.`,
+    operations: `Your <strong>${cat.name}</strong> score of ${cat.score} suggests process gaps. Document your top 5 critical processes, identify the bottleneck in each, and assign clear ownership. Start with the process that causes the most customer complaints.`,
+    people: `Your <strong>${cat.name}</strong> score of ${cat.score} points to team challenges. Conduct 1:1 "stay interviews" with your top 5 performers this month, create written role descriptions with clear KPIs, and establish a monthly recognition practice.`,
+    marketing: `Your <strong>${cat.name}</strong> score of ${cat.score} indicates lead generation and conversion gaps. Define your ideal customer profile in writing, audit your top 3 marketing channels for ROI, and implement a simple lead tracking system.`,
+    leadership: `Your <strong>${cat.name}</strong> score of ${cat.score} suggests delegation and development opportunities. Identify 3 decisions you make weekly that someone else could own, schedule monthly leadership development conversations, and seek structured feedback quarterly.`,
+    innovation: `Your <strong>${cat.name}</strong> score of ${cat.score} indicates growth stagnation risk. Dedicate 2 hours/week to industry trend research, create a simple idea pipeline, and run one small experiment per quarter with clear success metrics.`,
+    systems: `Your <strong>${cat.name}</strong> score of ${cat.score} suggests technology underutilization. Audit your current tech stack for redundancies, identify the top 3 manual processes that could be automated, and ensure your critical data is backed up and secure.`,
+  };
+  return recs[cat.id] || `Focus on improving <strong>${cat.name}</strong> (score: ${cat.score}).`;
+}
+
+function getImpactEstimate(cat) {
+  const impacts = {
+    strategy: '$25K–$100K', financial: '$30K–$150K', operations: '$20K–$80K', people: '$15K–$60K',
+    marketing: '$25K–$120K', leadership: '$20K–$75K', innovation: '$30K–$200K', systems: '$10K–$50K',
+  };
+  return impacts[cat.id] || '$15K–$75K';
+}
+
+// ═══════════════════════════════════════════════════
+// INTERACTIONS
+// ═══════════════════════════════════════════════════
+
+function startDiagnostic() {
+  screen = 'question';
+  currentQ = 0;
+  render();
+}
+
+function selectAnswer(idx) {
+  answers[currentQ] = idx;
+  render();
+  // Auto-advance after brief delay
+  setTimeout(() => {
+    if (currentQ < QUESTIONS.length - 1) {
+      nextQuestion();
+    }
+  }, 300);
+}
+
+function nextQuestion() {
+  if (answers[currentQ] === null) return;
+  if (currentQ >= QUESTIONS.length - 1) {
+    screen = 'results';
+    render();
+    // Save results to IndexedDB / localStorage
+    saveResults();
+    return;
+  }
+  currentQ++;
+  render();
+}
+
+function prevQuestion() {
+  if (currentQ > 0) {
+    currentQ--;
+    render();
+  }
+}
+
+function captureEmail(e) {
+  e.preventDefault();
+  const email = document.getElementById('resultEmail').value;
+  const scores = calculateScores();
+
+  // Save to localStorage (replace with API call)
+  const waitlist = JSON.parse(localStorage.getItem('cp_waitlist') || '[]');
+  waitlist.push({
+    email,
+    date: new Date().toISOString(),
+    scores: {
+      overall: scores.overall,
+      categories: scores.categories.map(c => ({ id: c.id, name: c.name, score: c.score }))
+    }
+  });
+  localStorage.setItem('cp_waitlist', JSON.stringify(waitlist));
+
+  document.querySelector('.email-row').style.display = 'none';
+  document.getElementById('emailSuccess').style.display = 'block';
+}
+
+function saveResults() {
+  const scores = calculateScores();
+  const result = {
+    id: 'diag_' + Date.now(),
+    date: new Date().toISOString(),
+    answers: answers.slice(),
+    overall: scores.overall,
+    categories: scores.categories.map(c => ({ id: c.id, score: c.score }))
+  };
+  localStorage.setItem('cp_last_diagnostic', JSON.stringify(result));
+
+  // Also try IndexedDB if available (from the PWA)
+  try {
+    const req = indexedDB.open('coachperfect', 1);
+    req.onsuccess = (e) => {
+      const db = e.target.result;
+      if (db.objectStoreNames.contains('diagnostics')) {
+        const tx = db.transaction('diagnostics', 'readwrite');
+        tx.objectStore('diagnostics').put(result);
+      }
+    };
+  } catch (e) {}
+}
+
+function downloadResults() {
+  const scores = calculateScores();
+  // Generate a simple text summary (replace with PDF generation)
+  let text = `BUSINESS HEALTH DIAGNOSTIC RESULTS\n`;
+  text += `Generated by Coach Perfect\n`;
+  text += `Date: ${new Date().toLocaleDateString()}\n`;
+  text += `${'═'.repeat(50)}\n\n`;
+  text += `OVERALL SCORE: ${scores.overall} / 100\n`;
+  text += `Grade: ${getGrade(scores.overall).label}\n\n`;
+  text += `CATEGORY BREAKDOWN:\n`;
+  scores.categories.forEach(c => {
+    const bar = '█'.repeat(Math.round(c.score / 5)) + '░'.repeat(20 - Math.round(c.score / 5));
+    text += `  ${c.icon} ${c.name.padEnd(25)} ${bar} ${c.score}\n`;
+  });
+  text += `\n${'═'.repeat(50)}\n`;
+  text += `\nGenerated at coachperfect.io\n`;
+
+  const blob = new Blob([text], { type: 'text/plain' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `business-health-score-${scores.overall}.txt`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ═══════════════════════════════════════════════════
+// KEYBOARD NAV
+// ═══════════════════════════════════════════════════
+
+document.addEventListener('keydown', (e) => {
+  if (screen !== 'question') return;
+  if (e.key >= '1' && e.key <= '5') {
+    selectAnswer(parseInt(e.key) - 1);
+  }
+  if (e.key === 'ArrowRight' || e.key === 'Enter') {
+    if (answers[currentQ] !== null) nextQuestion();
+  }
+  if (e.key === 'ArrowLeft') {
+    prevQuestion();
+  }
+});
+
+// ═══════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════
+
+render();
+</script>
+<!-- ADMIN MODAL -->
+<div class="admin-overlay" id="adminOverlay">
+  <div class="admin-modal">
+    <button class="close" onclick="closeAdmin()">&times;</button>
+    <h3>🔒 Admin Access</h3>
+    <div class="sub">Super admin login</div>
+    <input type="email" id="adminEmail" placeholder="Email" autocomplete="email">
+    <input type="password" id="adminPass" placeholder="Password" autocomplete="current-password">
+    <button class="btn-login" onclick="adminLogin()">Sign In</button>
+    <div class="error" id="adminError">Invalid credentials</div>
+  </div>
+</div>
+<div class="admin-bar" id="adminBar">
+  <span class="info">🟠 Admin Mode — Full access · All features unlocked</span>
+  <button class="logout" onclick="adminLogout()">Sign Out</button>
+</div>
+
+<script>
+// Admin auth (shared with landing page via localStorage)
+const ADMIN_HASH = '4afef0956d4eec58a2bb7accf5ccc5886ba1f999109f94dc96f64b86cd49a710';
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+// Triple-click any logo to open admin panel
+document.addEventListener('click', (e) => {
+  const trigger = e.target.closest('.admin-trigger');
+  if (!trigger) return;
+  e.preventDefault();
+  if (!window._ac) window._ac = 0;
+  window._ac++;
+  clearTimeout(window._at);
+  if (window._ac >= 3) {
+    window._ac = 0;
+    if (isAdmin()) return;
+    document.getElementById('adminOverlay').classList.add('open');
+    document.getElementById('adminEmail').focus();
+  }
+  window._at = setTimeout(() => window._ac = 0, 600);
+});
+
+async function adminLogin() {
+  const email = document.getElementById('adminEmail').value.trim().toLowerCase();
+  const pass = document.getElementById('adminPass').value;
+  const hash = await sha256(email + ':' + pass);
+  if (hash === ADMIN_HASH) {
+    localStorage.setItem('cp_admin', JSON.stringify({ email, ts: Date.now() }));
+    closeAdmin();
+    activateAdmin();
+  } else {
+    document.getElementById('adminError').style.display = 'block';
+    document.getElementById('adminPass').value = '';
+  }
+}
+
+function closeAdmin() {
+  document.getElementById('adminOverlay').classList.remove('open');
+  document.getElementById('adminError').style.display = 'none';
+}
+
+function adminLogout() {
+  localStorage.removeItem('cp_admin');
+  location.reload();
+}
+
+function isAdmin() {
+  try {
+    const d = JSON.parse(localStorage.getItem('cp_admin'));
+    return d && d.email && (Date.now() - d.ts < 30 * 86400000);
+  } catch { return false; }
+}
+
+function activateAdmin() {
+  document.querySelectorAll('#adminBadge').forEach(b => b.style.display = 'inline-flex');
+  document.getElementById('adminBar').classList.add('active');
+}
+
+document.getElementById('adminPass')?.addEventListener('keydown', (e) => { if (e.key === 'Enter') adminLogin(); });
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeAdmin(); });
+
+// Check on load + re-check after each render
+const _origRender = render;
+render = function() { _origRender(); if (isAdmin()) activateAdmin(); };
+if (isAdmin()) activateAdmin();
+</script>
+</body>
+</html>
