@@ -1,0 +1,12 @@
+{
+  "services": [
+    {
+      "id": "coachperfect-mobile",
+      "name": "coachperfect-mobile",
+      "port": 3000,
+      "command": "node server.js",
+      "path": "/home/user/CoachPerfect/coachperfect-all/mobile",
+      "createdAt": 1771443000000
+    }
+  ]
+}

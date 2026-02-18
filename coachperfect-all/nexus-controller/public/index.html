@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Local Nexus Controller</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --bg: #0a0a0f;
+      --bg-card: #111118;
+      --bg-elevated: #1a1a24;
+      --bg-input: #0e0e16;
+      --border: #222233;
+      --border-hover: #333348;
+      --text: #e4e4ef;
+      --text-dim: #8888a0;
+      --text-muted: #555570;
+      --accent: #f97316;
+      --accent-hover: #fb923c;
+      --accent-glow: rgba(249, 115, 22, 0.12);
+      --accent-glow-strong: rgba(249, 115, 22, 0.25);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.12);
+      --red: #ef4444;
+      --red-dim: rgba(239, 68, 68, 0.12);
+      --yellow: #eab308;
+      --yellow-dim: rgba(234, 179, 8, 0.12);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59, 130, 246, 0.12);
+      --radius: 12px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── TOP BAR ─── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 16px 32px;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-card);
+    }
+
+    .topbar-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .topbar-icon {
+      width: 36px;
+      height: 36px;
+      background: var(--accent);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .topbar-title {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .topbar-version {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg-elevated);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .topbar-right {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .topbar-stat {
+      font-size: 12px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .topbar-stat .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    /* ─── TABS ─── */
+    .tabs {
+      display: flex;
+      gap: 2px;
+      padding: 0 32px;
+      background: var(--bg-card);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+
+    .tab:hover { color: var(--text-dim); }
+    .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+    /* ─── MAIN ─── */
+    .main {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 28px 32px;
+    }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ─── TOOLBAR ─── */
+    .toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .toolbar h2 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.3px;
+    }
+
+    .toolbar .count-badge {
+      font-size: 11px;
+      background: var(--accent-glow);
+      color: var(--accent);
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-weight: 600;
+    }
+
+    /* ─── BUTTONS ─── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      background: var(--bg-elevated);
+      color: var(--text);
+      border-radius: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); color: #fff; }
+
+    .btn-danger { color: var(--red); }
+    .btn-danger:hover { border-color: var(--red); background: var(--red-dim); color: var(--red); }
+
+    .btn-sm { padding: 5px 10px; font-size: 11px; }
+
+    .btn-launch {
+      background: var(--green-dim);
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .btn-launch:hover { background: var(--green); color: #fff; }
+
+    .btn-stop {
+      background: var(--red-dim);
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .btn-stop:hover { background: var(--red); color: #fff; }
+
+    .btn-resolve {
+      background: var(--yellow-dim);
+      border-color: var(--yellow);
+      color: var(--yellow);
+    }
+
+    .btn-resolve:hover { background: var(--yellow); color: #000; }
+
+    /* ─── SERVICE TABLE ─── */
+    .svc-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .svc-table th {
+      text-align: left;
+      padding: 10px 16px;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      font-weight: 600;
+    }
+
+    .svc-table td {
+      padding: 14px 16px;
+      font-size: 13px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    .svc-table tr:hover td { background: rgba(255,255,255,0.015); }
+
+    .svc-name {
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .svc-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .svc-status-dot.running { background: var(--green); box-shadow: 0 0 6px var(--green); }
+    .svc-status-dot.stopped { background: var(--text-muted); }
+    .svc-status-dot.conflict { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); }
+
+    .svc-port {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      font-weight: 600;
+    }
+
+    .svc-port.conflict {
+      color: var(--yellow);
+      position: relative;
+    }
+
+    .svc-path {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-muted);
+      max-width: 240px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .svc-cmd {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: var(--text-dim);
+    }
+
+    .svc-actions {
+      display: flex;
+      gap: 6px;
+      align-items: center;
+    }
+
+    .conflict-badge {
+      font-size: 10px;
+      background: var(--yellow-dim);
+      color: var(--yellow);
+      padding: 2px 8px;
+      border-radius: 6px;
+      font-weight: 600;
+      margin-left: 6px;
+    }
+
+    /* ─── ADD SERVICE FORM ─── */
+    .add-form {
+      display: none;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 24px;
+      margin-bottom: 20px;
+    }
+
+    .add-form.visible { display: block; }
+
+    .add-form h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 16px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 100px;
+      gap: 12px;
+    }
+
+    .form-group { display: flex; flex-direction: column; gap: 4px; }
+
+    .form-group label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .form-group input {
+      padding: 8px 12px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+
+    .form-group input:focus { border-color: var(--accent); }
+
+    .form-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    /* ─── PORTS PANEL ─── */
+    .port-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 12px;
+    }
+
+    .port-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      text-align: center;
+    }
+
+    .port-card.conflict { border-color: var(--yellow); }
+    .port-card.free { border-color: var(--green); }
+
+    .port-number {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 24px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .port-service {
+      font-size: 12px;
+      color: var(--text-dim);
+      margin-top: 4px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    /* ─── LOG PANEL ─── */
+    .log-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      max-height: 400px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+    }
+
+    .log-line {
+      padding: 3px 0;
+      display: flex;
+      gap: 10px;
+    }
+
+    .log-line .ts { color: var(--text-muted); flex-shrink: 0; }
+    .log-line .stdout { color: var(--text-dim); }
+    .log-line .stderr { color: var(--red); }
+
+    /* ─── EMPTY STATE ─── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--text-muted);
+    }
+
+    .empty-state .icon { font-size: 40px; margin-bottom: 12px; }
+    .empty-state p { font-size: 14px; margin-bottom: 16px; }
+
+    /* ─── TOAST ─── */
+    .toast-container {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 1000;
+    }
+
+    .toast {
+      padding: 12px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      animation: slideIn 0.2s ease;
+      max-width: 400px;
+    }
+
+    .toast.success { border-color: var(--green); }
+    .toast.error { border-color: var(--red); }
+    .toast.warning { border-color: var(--yellow); }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @media (max-width: 800px) {
+      .topbar { padding: 12px 16px; }
+      .tabs { padding: 0 16px; overflow-x: auto; }
+      .main { padding: 20px 16px; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="topbar-icon">N</div>
+    <span class="topbar-title">Local Nexus Controller</span>
+    <span class="topbar-version">v0.1.0</span>
+  </div>
+  <div class="topbar-right">
+    <div class="topbar-stat">
+      <span>Registry: JSON</span>
+    </div>
+    <div class="topbar-stat" id="runningCount">
+      <div class="dot" style="background: var(--green);"></div>
+      <span>0 running</span>
+    </div>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <div class="tab active" data-tab="services">Services</div>
+  <div class="tab" data-tab="ports">Ports</div>
+  <div class="tab" data-tab="logs">Logs</div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+
+  <!-- ─── SERVICES PANEL ─── -->
+  <div class="panel active" id="panel-services">
+
+    <!-- Add Service Form -->
+    <div class="add-form" id="addForm">
+      <h3>Register New Service</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Service Name</label>
+          <input type="text" id="fName" placeholder="my-service">
+        </div>
+        <div class="form-group">
+          <label>Port</label>
+          <input type="number" id="fPort" placeholder="3000" value="3000">
+        </div>
+      </div>
+      <div class="form-grid" style="margin-top: 12px;">
+        <div class="form-group">
+          <label>Working Directory (absolute path)</label>
+          <input type="text" id="fPath" placeholder="/home/user/my-project">
+        </div>
+        <div class="form-group">
+          <label>Command</label>
+          <input type="text" id="fCmd" placeholder="npm start" value="npm start">
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-primary" onclick="submitAddService()">Register Service</button>
+        <button class="btn" onclick="toggleAddForm()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <h2>Services</h2>
+        <span class="count-badge" id="serviceCount">0</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-resolve" onclick="resolvePorts()">Resolve Ports</button>
+        <button class="btn btn-primary" onclick="toggleAddForm()">+ Add Service</button>
+      </div>
+    </div>
+
+    <!-- Service Table -->
+    <table class="svc-table">
+      <thead>
+        <tr>
+          <th>Service</th>
+          <th>Port</th>
+          <th>Command</th>
+          <th>Path</th>
+          <th style="text-align: right;">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="serviceTableBody">
+      </tbody>
+    </table>
+
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <div class="icon">📦</div>
+      <p>No services registered yet.</p>
+      <button class="btn btn-primary" onclick="toggleAddForm()">+ Register Your First Service</button>
+    </div>
+  </div>
+
+  <!-- ─── PORTS PANEL ─── -->
+  <div class="panel" id="panel-ports">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <h2>Port Allocation</h2>
+      </div>
+      <button class="btn btn-resolve" onclick="resolvePorts()">Resolve Conflicts</button>
+    </div>
+    <div class="port-grid" id="portGrid"></div>
+  </div>
+
+  <!-- ─── LOGS PANEL ─── -->
+  <div class="panel" id="panel-logs">
+    <div class="toolbar">
+      <div class="toolbar-left">
+        <h2>Service Logs</h2>
+      </div>
+      <select id="logServiceSelect" onchange="loadLogs()" style="padding: 6px 12px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px;">
+        <option value="">Select a service...</option>
+      </select>
+    </div>
+    <div class="log-container" id="logContainer">
+      <div style="color: var(--text-muted); text-align: center; padding: 40px;">Select a running service to view logs</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- TOASTS -->
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+// ═══════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════
+
+let services = [];
+let conflicts = {};
+
+// ═══════════════════════════════════════════════════
+// TABS
+// ═══════════════════════════════════════════════════
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + tab.dataset.tab).classList.add('active');
+    if (tab.dataset.tab === 'ports') loadPorts();
+    if (tab.dataset.tab === 'logs') populateLogSelect();
+  });
+});
+
+// ═══════════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════════
+
+function toast(msg, type) {
+  type = type || 'success';
+  const icons = { success: '✅', error: '❌', warning: '⚠️' };
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  el.innerHTML = `<span>${icons[type] || ''}</span> ${msg}`;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 4000);
+}
+
+// ═══════════════════════════════════════════════════
+// API CALLS
+// ═══════════════════════════════════════════════════
+
+async function api(path, opts) {
+  opts = opts || {};
+  const res = await fetch('/api' + path, {
+    method: opts.method || 'GET',
+    headers: opts.body ? { 'Content-Type': 'application/json' } : {},
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  return res.json();
+}
+
+// ═══════════════════════════════════════════════════
+// LOAD SERVICES
+// ═══════════════════════════════════════════════════
+
+async function loadServices() {
+  const data = await api('/services');
+  services = data.services || [];
+
+  // Check for port conflicts
+  const portData = await api('/ports');
+  conflicts = {};
+  for (const c of (portData.conflicts || [])) {
+    for (const id of c.services) {
+      conflicts[id] = c.port;
+    }
+  }
+
+  renderServices();
+}
+
+function renderServices() {
+  const tbody = document.getElementById('serviceTableBody');
+  const empty = document.getElementById('emptyState');
+  document.getElementById('serviceCount').textContent = services.length;
+
+  const running = services.filter(s => s.running).length;
+  document.getElementById('runningCount').innerHTML =
+    `<div class="dot" style="background: ${running > 0 ? 'var(--green)' : 'var(--text-muted)'};"></div>` +
+    `<span>${running} running</span>`;
+
+  if (services.length === 0) {
+    tbody.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+
+  empty.style.display = 'none';
+  tbody.innerHTML = services.map(s => {
+    const hasConflict = conflicts[s.id] !== undefined;
+    const dotClass = s.running ? 'running' : (hasConflict ? 'conflict' : 'stopped');
+    const portClass = hasConflict ? ' conflict' : '';
+    const conflictBadge = hasConflict ? `<span class="conflict-badge">CONFLICT</span>` : '';
+
+    return `<tr>
+      <td>
+        <div class="svc-name">
+          <div class="svc-status-dot ${dotClass}"></div>
+          ${esc(s.name)}
+        </div>
+      </td>
+      <td>
+        <span class="svc-port${portClass}">:${s.port}</span>
+        ${conflictBadge}
+      </td>
+      <td><span class="svc-cmd">${esc(s.command || 'npm start')}</span></td>
+      <td><span class="svc-path" title="${esc(s.path || '')}">${esc(s.path || '—')}</span></td>
+      <td>
+        <div class="svc-actions">
+          ${s.running
+            ? `<button class="btn btn-sm btn-stop" onclick="stopSvc('${esc(s.id)}')">Stop</button>
+               <a class="btn btn-sm" href="http://localhost:${s.port}" target="_blank">Open :${s.port}</a>`
+            : `<button class="btn btn-sm btn-launch" onclick="launchSvc('${esc(s.id)}')">Launch :${s.port}</button>`
+          }
+          <button class="btn btn-sm btn-danger" onclick="deleteSvc('${esc(s.id)}')">✕</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ═══════════════════════════════════════════════════
+// SERVICE ACTIONS
+// ═══════════════════════════════════════════════════
+
+async function launchSvc(id) {
+  toast('Launching service...', 'success');
+  const result = await api('/services/' + encodeURIComponent(id) + '/launch', { method: 'POST' });
+  if (result.ok) {
+    if (result.portChanged) {
+      toast(`Port ${result.oldPort} was occupied — reassigned to :${result.newPort}`, 'warning');
+    } else {
+      toast('Service launched on :' + (result.port || ''), 'success');
+    }
+    setTimeout(() => {
+      loadServices();
+      // Auto-open the service URL after a short delay
+      const svc = services.find(s => s.id === id);
+      if (svc) {
+        const port = result.portChanged ? result.newPort : svc.port;
+        setTimeout(() => window.open('http://localhost:' + port, '_blank'), 1500);
+      }
+    }, 500);
+  } else {
+    toast(result.error || 'Launch failed', 'error');
+  }
+}
+
+async function stopSvc(id) {
+  const result = await api('/services/' + encodeURIComponent(id) + '/stop', { method: 'POST' });
+  if (result.ok) {
+    toast('Service stopped', 'success');
+  } else {
+    toast(result.error || 'Stop failed', 'error');
+  }
+  loadServices();
+}
+
+async function deleteSvc(id) {
+  if (!confirm('Remove this service from the registry?')) return;
+  await api('/services/' + encodeURIComponent(id), { method: 'DELETE' });
+  toast('Service removed', 'success');
+  loadServices();
+}
+
+// ═══════════════════════════════════════════════════
+// ADD SERVICE FORM
+// ═══════════════════════════════════════════════════
+
+function toggleAddForm() {
+  document.getElementById('addForm').classList.toggle('visible');
+}
+
+async function submitAddService() {
+  const name = document.getElementById('fName').value.trim();
+  const port = parseInt(document.getElementById('fPort').value, 10) || 3000;
+  const path = document.getElementById('fPath').value.trim();
+  const command = document.getElementById('fCmd').value.trim() || 'npm start';
+
+  if (!name) return toast('Service name is required', 'error');
+
+  const result = await api('/services', {
+    method: 'POST',
+    body: { name, port, path, command }
+  });
+
+  if (result.ok) {
+    toast(`${name} registered on :${port}`, 'success');
+    document.getElementById('fName').value = '';
+    document.getElementById('fPort').value = '3000';
+    document.getElementById('fPath').value = '';
+    document.getElementById('fCmd').value = 'npm start';
+    toggleAddForm();
+    loadServices();
+  } else {
+    toast(result.error || 'Registration failed', 'error');
+  }
+}
+
+// ═══════════════════════════════════════════════════
+// RESOLVE PORTS
+// ═══════════════════════════════════════════════════
+
+async function resolvePorts() {
+  toast('Resolving port conflicts...', 'warning');
+  const result = await api('/resolve-ports', { method: 'POST' });
+  if (result.changes && result.changes.length > 0) {
+    for (const c of result.changes) {
+      toast(`${c.name}: :${c.oldPort} → :${c.newPort}`, 'success');
+    }
+  } else {
+    toast('No port conflicts found', 'success');
+  }
+  loadServices();
+}
+
+// ═══════════════════════════════════════════════════
+// PORTS VIEW
+// ═══════════════════════════════════════════════════
+
+async function loadPorts() {
+  const data = await api('/ports');
+  const grid = document.getElementById('portGrid');
+  const ports = data.ports || {};
+  const conflictSet = new Set();
+  for (const c of (data.conflicts || [])) conflictSet.add(c.port);
+
+  const entries = Object.entries(ports).sort((a, b) => parseInt(a[0]) - parseInt(b[0]));
+
+  if (entries.length === 0) {
+    grid.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px;">No ports allocated</div>';
+    return;
+  }
+
+  grid.innerHTML = entries.map(([port, svcId]) => {
+    const isConflict = conflictSet.has(parseInt(port));
+    const cls = isConflict ? 'conflict' : 'free';
+    return `<div class="port-card ${cls}">
+      <div class="port-number">${port}</div>
+      <div class="port-service">${esc(svcId)}${isConflict ? ' ⚠️' : ''}</div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════════════
+// LOGS VIEW
+// ═══════════════════════════════════════════════════
+
+function populateLogSelect() {
+  const sel = document.getElementById('logServiceSelect');
+  const current = sel.value;
+  sel.innerHTML = '<option value="">Select a service...</option>' +
+    services.map(s => `<option value="${esc(s.id)}" ${s.id === current ? 'selected' : ''}>${esc(s.name)} ${s.running ? '(running)' : ''}</option>`).join('');
+}
+
+async function loadLogs() {
+  const sel = document.getElementById('logServiceSelect');
+  const id = sel.value;
+  const container = document.getElementById('logContainer');
+
+  if (!id) {
+    container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px;">Select a service to view logs</div>';
+    return;
+  }
+
+  const data = await api('/services/' + encodeURIComponent(id) + '/logs');
+  const logs = data.logs || [];
+
+  if (logs.length === 0) {
+    container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 40px;">No log output yet</div>';
+    return;
+  }
+
+  container.innerHTML = logs.map(l => {
+    const ts = new Date(l.t).toLocaleTimeString('en-US', { hour12: false });
+    return `<div class="log-line"><span class="ts">${ts}</span><span class="${l.stream}">${esc(l.text)}</span></div>`;
+  }).join('');
+
+  container.scrollTop = container.scrollHeight;
+}
+
+// ═══════════════════════════════════════════════════
+// POLLING + INIT
+// ═══════════════════════════════════════════════════
+
+async function init() {
+  await loadServices();
+  // Auto-refresh every 5s
+  setInterval(loadServices, 5000);
+  // Auto-refresh logs if viewing
+  setInterval(() => {
+    if (document.getElementById('panel-logs').classList.contains('active') && document.getElementById('logServiceSelect').value) {
+      loadLogs();
+    }
+  }, 3000);
+}
+
+init();
+</script>
+</body>
+</html>

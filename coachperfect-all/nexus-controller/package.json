@@ -1,0 +1,12 @@
+{
+  "name": "local-nexus-controller",
+  "version": "0.1.0",
+  "description": "Local Nexus Controller — Service registry, port manager, and launcher",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
