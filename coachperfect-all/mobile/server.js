@@ -78,6 +78,28 @@ const httpServer = http.createServer((req, res) => {
     return;
   }
 
+  // API: Status health-check (used by Nexus Controller)
+  if (req.url === '/api/status') {
+    res.writeHead(200, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({
+      ok: true,
+      ip: LOCAL_IP,
+      wsPort: WS_PORT,
+      httpPort: HTTP_PORT,
+      peers: wss ? wss.clients.size : 0,
+      uptime: process.uptime(),
+      timestamp: Date.now()
+    }));
+    return;
+  }
+
+  // Route: /nexus — redirect to Nexus Controller page
+  if (req.url === '/nexus' || req.url === '/nexus/') {
+    res.writeHead(302, { Location: '/nexus.html' });
+    res.end();
+    return;
+  }
+
   // API: QR code data
   if (req.url === '/api/qr-data') {
     res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -275,18 +297,20 @@ function broadcast(msg, excludeDeviceId) {
 
 httpServer.listen(HTTP_PORT, '0.0.0.0', () => {
   console.log('');
-  console.log('  ┌─────────────────────────────────────────────┐');
-  console.log('  │                                             │');
-  console.log('  │   🟠  Coach Perfect Mobile Server                │');
-  console.log('  │                                             │');
-  console.log(`  │   Local:   http://localhost:${HTTP_PORT}            │`);
-  console.log(`  │   Network: http://${LOCAL_IP}:${HTTP_PORT}      │`);
-  console.log(`  │   Sync:    ws://${LOCAL_IP}:${WS_PORT}       │`);
-  console.log('  │                                             │');
-  console.log('  │   📱 Scan QR code on dashboard to install   │');
-  console.log('  │   📡 Devices on same WiFi sync auto         │');
-  console.log('  │   📴 Works fully offline after first load   │');
-  console.log('  │                                             │');
-  console.log('  └─────────────────────────────────────────────┘');
+  console.log('  ┌─────────────────────────────────────────────────┐');
+  console.log('  │                                                 │');
+  console.log('  │   🟠  Coach Perfect — Local Nexus Controller    │');
+  console.log('  │                                                 │');
+  console.log(`  │   Nexus:   http://localhost:${HTTP_PORT}/nexus          │`);
+  console.log(`  │   App:     http://localhost:${HTTP_PORT}                │`);
+  console.log(`  │   Network: http://${LOCAL_IP}:${HTTP_PORT}          │`);
+  console.log(`  │   Sync:    ws://${LOCAL_IP}:${WS_PORT}           │`);
+  console.log('  │                                                 │');
+  console.log('  │   👉 Open Nexus Controller to launch the app   │');
+  console.log('  │   📱 Scan QR code on dashboard to install      │');
+  console.log('  │   📡 Devices on same WiFi sync automatically   │');
+  console.log('  │   📴 Works fully offline after first load      │');
+  console.log('  │                                                 │');
+  console.log('  └─────────────────────────────────────────────────┘');
   console.log('');
 });

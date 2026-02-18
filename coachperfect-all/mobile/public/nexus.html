@@ -1,0 +1,902 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coach Perfect — Nexus Controller</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+    :root {
+      --bg: #0a0a0f;
+      --bg-card: #13131a;
+      --bg-elevated: #1a1a24;
+      --border: #2a2a3a;
+      --text: #e8e8ef;
+      --text-dim: #8888a0;
+      --text-muted: #555570;
+      --accent: #f97316;
+      --accent-hover: #fb923c;
+      --accent-glow: rgba(249, 115, 22, 0.12);
+      --accent-glow-strong: rgba(249, 115, 22, 0.25);
+      --green: #22c55e;
+      --green-dim: rgba(34, 197, 94, 0.12);
+      --red: #ef4444;
+      --red-dim: rgba(239, 68, 68, 0.12);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59, 130, 246, 0.12);
+      --radius: 16px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ─── LAYOUT ─── */
+    .nexus {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 40px;
+    }
+
+    /* ─── HEADER ─── */
+    .nexus-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 48px;
+    }
+
+    .header-brand {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .brand-icon {
+      width: 48px;
+      height: 48px;
+      background: var(--accent);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      letter-spacing: -1px;
+      box-shadow: 0 0 24px var(--accent-glow-strong);
+    }
+
+    .brand-text h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.4px;
+    }
+
+    .brand-text h1 span { color: var(--accent); }
+
+    .brand-text p {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      margin-top: 2px;
+    }
+
+    .server-pill {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 50px;
+      font-size: 13px;
+      transition: border-color 0.3s;
+    }
+
+    .server-pill.online { border-color: var(--green); }
+    .server-pill.offline { border-color: var(--red); }
+
+    .pill-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: background 0.3s;
+    }
+
+    .server-pill.online .pill-dot { background: var(--green); animation: pulse-dot 2s infinite; }
+    .server-pill.offline .pill-dot { background: var(--red); }
+
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+      50% { opacity: 0.8; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+    }
+
+    .pill-label { color: var(--text-dim); }
+    .pill-status { font-weight: 600; }
+    .server-pill.online .pill-status { color: var(--green); }
+    .server-pill.offline .pill-status { color: var(--red); }
+
+    /* ─── LAUNCH ZONE ─── */
+    .launch-zone {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 48px;
+      text-align: center;
+      margin-bottom: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .launch-zone::before {
+      content: '';
+      position: absolute;
+      top: -80px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, var(--accent-glow-strong) 0%, transparent 60%);
+      pointer-events: none;
+    }
+
+    .launch-zone h2 {
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.8px;
+      margin-bottom: 8px;
+    }
+
+    .launch-zone h2 .highlight { color: var(--accent); }
+
+    .launch-zone p {
+      font-size: 15px;
+      color: var(--text-dim);
+      margin-bottom: 40px;
+      max-width: 480px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.6;
+    }
+
+    .launch-buttons {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn-launch {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 40px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: 14px;
+      font-size: 17px;
+      font-weight: 700;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      box-shadow: 0 8px 24px var(--accent-glow-strong);
+      letter-spacing: -0.2px;
+    }
+
+    .btn-launch:hover {
+      background: var(--accent-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px var(--accent-glow-strong);
+    }
+
+    .btn-launch:active {
+      transform: translateY(0);
+    }
+
+    .btn-launch.disabled {
+      background: var(--bg-elevated);
+      color: var(--text-muted);
+      border: 1px solid var(--border);
+      box-shadow: none;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-secondary {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 32px;
+      background: var(--bg-elevated);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      font-size: 15px;
+      font-weight: 600;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+    }
+
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .launch-url-display {
+      margin-top: 20px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .launch-url-display span {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    /* ─── INFO GRID ─── */
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 32px;
+    }
+
+    .info-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+    }
+
+    .info-card-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .info-card-value {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--accent);
+      word-break: break-all;
+    }
+
+    .info-card-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* ─── TWO-COLUMN ─── */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-bottom: 32px;
+    }
+
+    /* ─── SECTION CARD ─── */
+    .section-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 28px;
+    }
+
+    .section-card-title {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .section-card-title .badge {
+      font-size: 11px;
+      background: var(--accent-glow);
+      color: var(--accent);
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-weight: 500;
+    }
+
+    /* ─── QR CODES ─── */
+    .qr-pair {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    .qr-item {
+      text-align: center;
+      padding: 16px;
+      background: var(--bg-elevated);
+      border-radius: 12px;
+    }
+
+    .qr-item canvas {
+      background: #fff;
+      border-radius: 10px;
+      padding: 8px;
+      display: block;
+      margin: 0 auto 10px;
+    }
+
+    .qr-label {
+      font-size: 12px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .qr-url {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--accent);
+      word-break: break-all;
+    }
+
+    /* ─── DEVICES ─── */
+    .devices-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .device-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: var(--bg-elevated);
+      border-radius: 10px;
+      border: 1px solid transparent;
+    }
+
+    .device-row.active { border-color: var(--green); }
+
+    .device-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--green);
+      flex-shrink: 0;
+    }
+
+    .device-info { flex: 1; min-width: 0; }
+
+    .device-info .name {
+      font-size: 13px;
+      font-weight: 500;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .device-info .id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+    }
+
+    .device-syncs {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+      text-align: right;
+    }
+
+    .no-devices {
+      text-align: center;
+      padding: 32px 16px;
+      color: var(--text-muted);
+      font-size: 13px;
+    }
+
+    /* ─── LOG ─── */
+    .log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .log-row {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(42, 42, 58, 0.5);
+      font-size: 12px;
+    }
+
+    .log-row:last-child { border-bottom: none; }
+
+    .log-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      padding-top: 1px;
+    }
+
+    .log-msg { color: var(--text-dim); line-height: 1.4; }
+    .log-msg strong { color: var(--text); font-weight: 500; }
+
+    /* ─── FOOTER ─── */
+    .nexus-footer {
+      text-align: center;
+      padding: 24px;
+      font-size: 11px;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border);
+      margin-top: 8px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* ─── RESPONSIVE ─── */
+    @media (max-width: 900px) {
+      .info-grid { grid-template-columns: repeat(2, 1fr); }
+      .two-col { grid-template-columns: 1fr; }
+      .nexus { padding: 20px; }
+    }
+
+    @media (max-width: 600px) {
+      .info-grid { grid-template-columns: 1fr; }
+      .launch-zone { padding: 32px 20px; }
+      .launch-zone h2 { font-size: 24px; }
+      .nexus-header { flex-direction: column; gap: 16px; align-items: flex-start; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="nexus">
+
+  <!-- ─── HEADER ─── -->
+  <header class="nexus-header">
+    <div class="header-brand">
+      <div class="brand-icon">CP</div>
+      <div class="brand-text">
+        <h1>Coach<span>Perfect</span></h1>
+        <p>Local Nexus Controller</p>
+      </div>
+    </div>
+    <div class="server-pill" id="serverPill">
+      <div class="pill-dot" id="pillDot"></div>
+      <span class="pill-label">Server</span>
+      <span class="pill-status" id="pillStatus">Connecting...</span>
+    </div>
+  </header>
+
+  <!-- ─── LAUNCH ZONE ─── -->
+  <div class="launch-zone">
+    <h2>Launch <span class="highlight">Coach Perfect</span></h2>
+    <p>Your local server is running. Launch the mobile app to start coaching, or open the sync dashboard to manage connected devices.</p>
+    <div class="launch-buttons">
+      <button class="btn-launch disabled" id="btnLaunchApp" onclick="launchApp()">
+        🚀 Launch App
+      </button>
+      <a class="btn-secondary" href="/dashboard.html" target="_blank">
+        📡 Sync Dashboard
+      </a>
+    </div>
+    <div class="launch-url-display" id="launchUrlDisplay">
+      Detecting server address...
+    </div>
+  </div>
+
+  <!-- ─── INFO CARDS ─── -->
+  <div class="info-grid">
+    <div class="info-card">
+      <div class="info-card-label">Local IP</div>
+      <div class="info-card-value" id="infoIp">—</div>
+      <div class="info-card-sub">Local network address</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-label">HTTP Port</div>
+      <div class="info-card-value" id="infoHttpPort">—</div>
+      <div class="info-card-sub">Serves the PWA</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-label">WebSocket Port</div>
+      <div class="info-card-value" id="infoWsPort">—</div>
+      <div class="info-card-sub">Device sync channel</div>
+    </div>
+    <div class="info-card">
+      <div class="info-card-label">Connected Devices</div>
+      <div class="info-card-value" id="infoDevices">0</div>
+      <div class="info-card-sub" id="infoDevicesSub">No devices synced</div>
+    </div>
+  </div>
+
+  <!-- ─── QR + DEVICES ─── -->
+  <div class="two-col">
+
+    <!-- QR CODES -->
+    <div class="section-card">
+      <div class="section-card-title">
+        📱 Install QR Codes
+      </div>
+      <div class="qr-pair">
+        <div class="qr-item">
+          <canvas id="qrApp" width="140" height="140"></canvas>
+          <div class="qr-label">Mobile App</div>
+          <div class="qr-url" id="qrAppUrl">Loading...</div>
+        </div>
+        <div class="qr-item">
+          <canvas id="qrClient" width="140" height="140"></canvas>
+          <div class="qr-label">Client View</div>
+          <div class="qr-url" id="qrClientUrl">Loading...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONNECTED DEVICES -->
+    <div class="section-card">
+      <div class="section-card-title">
+        Connected Devices
+        <span class="badge" id="deviceCountBadge">0</span>
+      </div>
+      <div class="devices-list" id="devicesList">
+        <div class="no-devices">
+          <div style="font-size: 28px; margin-bottom: 8px;">📱</div>
+          No devices connected yet.<br>Scan a QR code to connect.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── ACTIVITY LOG ─── -->
+  <div class="section-card" style="margin-bottom: 32px;">
+    <div class="section-card-title">Activity Log</div>
+    <div class="log-list" id="logList"></div>
+  </div>
+
+  <!-- ─── FOOTER ─── -->
+  <footer class="nexus-footer">
+    Coach Perfect v1.0.0 · Local Nexus Controller · Offline-First · Zero Cloud Dependency
+  </footer>
+
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════
+
+let serverInfo = null;
+let appUrl = null;
+let ws = null;
+const devices = new Map();
+const logs = [];
+
+// ═══════════════════════════════════════════════════════════════
+// LOGGING
+// ═══════════════════════════════════════════════════════════════
+
+function addLog(icon, html) {
+  const t = new Date().toLocaleTimeString('en-US', { hour12: false, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+  logs.unshift({ t, icon, html });
+  if (logs.length > 40) logs.pop();
+  renderLog();
+}
+
+function renderLog() {
+  const el = document.getElementById('logList');
+  if (logs.length === 0) {
+    el.innerHTML = '<div class="log-row"><span class="log-msg" style="color: var(--text-muted)">No activity yet...</span></div>';
+    return;
+  }
+  el.innerHTML = logs.map(l => `
+    <div class="log-row">
+      <span class="log-time">${l.t}</span>
+      <span class="log-msg">${l.icon} ${l.html}</span>
+    </div>
+  `).join('');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SERVER STATUS
+// ═══════════════════════════════════════════════════════════════
+
+function setServerStatus(online) {
+  const pill = document.getElementById('serverPill');
+  const status = document.getElementById('pillStatus');
+  pill.className = 'server-pill ' + (online ? 'online' : 'offline');
+  status.textContent = online ? 'Online' : 'Offline';
+}
+
+async function fetchServerInfo() {
+  try {
+    const res = await fetch('/api/info', { cache: 'no-store' });
+    if (!res.ok) throw new Error('bad response');
+    serverInfo = await res.json();
+    setServerStatus(true);
+    document.getElementById('infoIp').textContent = serverInfo.ip || location.hostname;
+    document.getElementById('infoHttpPort').textContent = serverInfo.httpPort || location.port || '3000';
+    document.getElementById('infoWsPort').textContent = serverInfo.wsPort || '3579';
+    addLog('✅', '<strong>Server online</strong> — ' + serverInfo.name);
+    return true;
+  } catch (e) {
+    setServerStatus(false);
+    addLog('⚠️', 'Server info unavailable — using detected address');
+    return false;
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// APP URL DETECTION + LAUNCH BUTTON
+// ═══════════════════════════════════════════════════════════════
+
+function buildAppUrl() {
+  if (serverInfo && serverInfo.ip) {
+    const port = serverInfo.httpPort || 3000;
+    return `http://${serverInfo.ip}:${port}`;
+  }
+  // Fallback: use current location
+  return `${location.protocol}//${location.hostname}:${location.port || 3000}`;
+}
+
+function enableLaunchButton(url) {
+  appUrl = url;
+  const btn = document.getElementById('btnLaunchApp');
+  btn.className = 'btn-launch';
+  document.getElementById('launchUrlDisplay').innerHTML =
+    'App URL: <span>' + url + '</span>';
+  addLog('🚀', 'Launch ready at <strong>' + url + '</strong>');
+}
+
+function launchApp() {
+  if (!appUrl) {
+    // Try to recover
+    const url = buildAppUrl();
+    if (url) {
+      enableLaunchButton(url);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } else {
+      addLog('❌', 'Cannot launch — server address unknown');
+    }
+    return;
+  }
+  addLog('🚀', 'Launching app at <strong>' + appUrl + '</strong>');
+  window.open(appUrl, '_blank', 'noopener,noreferrer');
+}
+
+// ═══════════════════════════════════════════════════════════════
+// QR CODES
+// ═══════════════════════════════════════════════════════════════
+
+function generateQR(canvas, text, size) {
+  size = size || 140;
+  const ctx = canvas.getContext('2d');
+  canvas.width = size;
+  canvas.height = size;
+
+  const modules = encodeQR(text);
+  const n = modules.length;
+  const cell = size / n;
+
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, size, size);
+  ctx.fillStyle = '#0a0a0f';
+
+  for (let r = 0; r < n; r++) {
+    for (let c = 0; c < n; c++) {
+      if (modules[r][c]) {
+        const x = c * cell;
+        const y = r * cell;
+        const s = cell * 0.85;
+        const off = (cell - s) / 2;
+        ctx.beginPath();
+        ctx.roundRect(x + off, y + off, s, s, cell * 0.15);
+        ctx.fill();
+      }
+    }
+  }
+
+  const ls = size * 0.16;
+  const lx = (size - ls) / 2;
+  const ly = (size - ls) / 2;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.roundRect(lx - 3, ly - 3, ls + 6, ls + 6, 5);
+  ctx.fill();
+  ctx.fillStyle = '#f97316';
+  ctx.beginPath();
+  ctx.roundRect(lx, ly, ls, ls, 3);
+  ctx.fill();
+  ctx.fillStyle = '#ffffff';
+  ctx.font = `bold ${ls * 0.5}px 'DM Sans', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('CP', lx + ls / 2, ly + ls / 2 + 1);
+}
+
+function encodeQR(text) {
+  const size = 25;
+  const m = Array.from({ length: size }, () => Array(size).fill(false));
+  function drawFinder(r, c) {
+    for (let i = 0; i < 7; i++) for (let j = 0; j < 7; j++) {
+      m[r+i][c+j] = (i===0||i===6||j===0||j===6) || (i>=2&&i<=4&&j>=2&&j<=4);
+    }
+  }
+  drawFinder(0, 0); drawFinder(0, size-7); drawFinder(size-7, 0);
+  for (let i = 8; i < size-8; i++) { m[6][i] = i%2===0; m[i][6] = i%2===0; }
+  const ap = 18;
+  for (let i=-2;i<=2;i++) for(let j=-2;j<=2;j++)
+    m[ap+i][ap+j] = Math.abs(i)===2||Math.abs(j)===2||(i===0&&j===0);
+  let hash = 0;
+  for (let i=0;i<text.length;i++) hash = ((hash<<5)-hash+text.charCodeAt(i))|0;
+  let seed = Math.abs(hash);
+  function nb() { seed=(seed*1103515245+12345)&0x7fffffff; return (seed>>16)&1; }
+  for (let r=0;r<size;r++) for(let c=0;c<size;c++) {
+    if(r<9&&c<9) continue; if(r<9&&c>=size-8) continue;
+    if(r>=size-8&&c<9) continue; if(r===6||c===6) continue;
+    if(r>=16&&r<=20&&c>=16&&c<=20) continue;
+    if(!m[r][c]) m[r][c]=!!nb();
+  }
+  const bits=[];
+  for(let i=0;i<text.length&&i<20;i++) {
+    const byte=text.charCodeAt(i);
+    for(let b=7;b>=0;b--) bits.push((byte>>b)&1);
+  }
+  let bi=0;
+  for(let c=size-1;c>=1;c-=2) {
+    if(c===6) c--;
+    for(let r=0;r<size&&bi<bits.length;r++) for(let dc=0;dc<2&&bi<bits.length;dc++) {
+      const col=c-dc; if(col<0) continue;
+      if(r<9&&col<9) continue; if(r<9&&col>=size-8) continue;
+      if(r>=size-8&&col<9) continue; if(r===6||col===6) continue;
+      m[r][col]=!!bits[bi++];
+    }
+  }
+  return m;
+}
+
+async function setupQRCodes() {
+  let base = appUrl;
+  if (!base) base = buildAppUrl();
+  const clientUrl = base + '?mode=client';
+
+  document.getElementById('qrAppUrl').textContent = base;
+  document.getElementById('qrClientUrl').textContent = clientUrl;
+
+  generateQR(document.getElementById('qrApp'), base);
+  generateQR(document.getElementById('qrClient'), clientUrl);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// WEBSOCKET — DEVICE TRACKING
+// ═══════════════════════════════════════════════════════════════
+
+function renderDevices() {
+  const list = document.getElementById('devicesList');
+  const badge = document.getElementById('deviceCountBadge');
+  const infoEl = document.getElementById('infoDevices');
+  const subEl = document.getElementById('infoDevicesSub');
+
+  const count = devices.size;
+  badge.textContent = count;
+  infoEl.textContent = count;
+  subEl.textContent = count === 0 ? 'No devices synced' : count + ' device' + (count !== 1 ? 's' : '') + ' active';
+
+  if (count === 0) {
+    list.innerHTML = `
+      <div class="no-devices">
+        <div style="font-size: 28px; margin-bottom: 8px;">📱</div>
+        No devices connected yet.<br>Scan a QR code to connect.
+      </div>`;
+    return;
+  }
+
+  list.innerHTML = Array.from(devices.values()).map(d => `
+    <div class="device-row active">
+      <div class="device-dot"></div>
+      <div class="device-info">
+        <div class="name">${d.name || 'Mobile Device'}</div>
+        <div class="id">${d.id}</div>
+      </div>
+      <div class="device-syncs">${d.syncs || 0} syncs</div>
+    </div>
+  `).join('');
+}
+
+function connectWS() {
+  const wsPort = (serverInfo && serverInfo.wsPort) || 3579;
+  const wsUrl = 'ws://' + location.hostname + ':' + wsPort;
+
+  ws = new WebSocket(wsUrl);
+
+  ws.onopen = () => {
+    addLog('📡', 'Nexus WebSocket <strong>connected</strong>');
+    ws.send(JSON.stringify({
+      type: 'HELLO',
+      deviceId: 'nexus_' + Math.random().toString(36).substr(2, 6),
+      isDashboard: true
+    }));
+  };
+
+  ws.onmessage = (evt) => {
+    try {
+      const msg = JSON.parse(evt.data);
+      if (msg.type === 'HELLO' && msg.deviceId && !msg.isDashboard) {
+        devices.set(msg.deviceId, {
+          id: msg.deviceId,
+          name: msg.deviceName || 'Mobile Device',
+          syncs: 0
+        });
+        renderDevices();
+        addLog('📱', 'Device connected: <strong>' + msg.deviceId + '</strong>');
+      }
+      if (msg.type === 'SYNC_BATCH' && msg.deviceId) {
+        const d = devices.get(msg.deviceId);
+        if (d) { d.syncs++; renderDevices(); }
+        addLog('🔄', '<strong>' + msg.deviceId + '</strong> synced ' + (msg.changes || []).length + ' changes');
+      }
+    } catch (e) {}
+  };
+
+  ws.onclose = () => {
+    addLog('⚠️', 'Sync channel disconnected — retrying in 5s');
+    setTimeout(connectWS, 5000);
+  };
+
+  ws.onerror = () => {
+    addLog('❌', 'Sync channel error — server may not be running on port ' + wsPort);
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+
+async function init() {
+  addLog('⚡', '<strong>Nexus Controller</strong> initializing');
+
+  // 1. Fetch server info
+  await fetchServerInfo();
+
+  // 2. Determine and enable launch URL
+  const url = buildAppUrl();
+  enableLaunchButton(url);
+
+  // 3. Setup QR codes
+  await setupQRCodes();
+
+  // 4. Connect WebSocket for device tracking
+  connectWS();
+
+  // 5. Poll server health every 15s
+  setInterval(async () => {
+    await fetchServerInfo();
+  }, 15000);
+
+  addLog('✅', 'Nexus Controller <strong>ready</strong>');
+}
+
+init();
+</script>
+</body>
+</html>
