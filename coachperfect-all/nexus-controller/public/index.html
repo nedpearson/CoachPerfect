@@ -540,6 +540,8 @@
         <span class="count-badge" id="serviceCount">0</span>
       </div>
       <div style="display: flex; gap: 8px;">
+        <button class="btn" onclick="launchAll()">Launch All</button>
+        <button class="btn" onclick="stopAll()">Stop All</button>
         <button class="btn btn-resolve" onclick="resolvePorts()">Resolve Ports</button>
         <button class="btn btn-primary" onclick="toggleAddForm()">+ Add Service</button>
       </div>
@@ -735,18 +737,15 @@ async function launchSvc(id) {
   if (result.ok) {
     if (result.portChanged) {
       toast(`Port ${result.oldPort} was occupied — reassigned to :${result.newPort}`, 'warning');
-    } else {
-      toast('Service launched on :' + (result.port || ''), 'success');
     }
-    setTimeout(() => {
-      loadServices();
-      // Auto-open the service URL after a short delay
-      const svc = services.find(s => s.id === id);
-      if (svc) {
-        const port = result.portChanged ? result.newPort : svc.port;
-        setTimeout(() => window.open('http://localhost:' + port, '_blank'), 1500);
-      }
-    }, 500);
+    const port = result.portChanged ? result.newPort : result.port;
+    if (result.ready) {
+      toast('Service live on :' + port, 'success');
+      window.open('http://localhost:' + port, '_blank');
+    } else {
+      toast('Service started on :' + port + ' (may still be loading)', 'warning');
+    }
+    loadServices();
   } else {
     toast(result.error || 'Launch failed', 'error');
   }
@@ -801,6 +800,32 @@ async function submitAddService() {
   } else {
     toast(result.error || 'Registration failed', 'error');
   }
+}
+
+// ═══════════════════════════════════════════════════
+// LAUNCH ALL / STOP ALL
+// ═══════════════════════════════════════════════════
+
+async function launchAll() {
+  toast('Launching all services...', 'success');
+  const result = await api('/launch-all', { method: 'POST' });
+  for (const r of (result.results || [])) {
+    if (r.skipped) {
+      toast(r.name + ' already running', 'success');
+    } else if (r.ok) {
+      toast(r.name + ' launched on :' + r.port, 'success');
+    } else {
+      toast(r.name + ': ' + (r.error || 'failed'), 'error');
+    }
+  }
+  loadServices();
+}
+
+async function stopAll() {
+  toast('Stopping all services...', 'warning');
+  await api('/stop-all', { method: 'POST' });
+  toast('All services stopped', 'success');
+  loadServices();
 }
 
 // ═══════════════════════════════════════════════════
