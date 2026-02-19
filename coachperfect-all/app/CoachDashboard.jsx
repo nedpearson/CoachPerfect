@@ -8,6 +8,9 @@ import { DocumentsPanel } from "./coach/DocumentsPanel.jsx";
 import { AICommandCenter } from "./coach/AICommandCenter.jsx";
 import { SubscriptionPanel } from "./coach/SubscriptionPanel.jsx";
 import { MessagesPanel } from "./coach/MessagesPanel.jsx";
+import { NotificationCenter } from "./coach/NotificationCenter.jsx";
+import { ClientUploadsPanel } from "./coach/ClientUploadsPanel.jsx";
+import { AuditLog } from "./coach/AuditLog.jsx";
 
 export default function CoachDashboard() {
   const [mode, setMode] = useState("business");      // "business" | "personal"
@@ -23,6 +26,8 @@ export default function CoachDashboard() {
   const isPersonal = mode === "personal";
   const alerts = isPersonal ? PERSONAL_ALERTS : BUSINESS_ALERTS;
   const unreadMsgs = Object.values(MESSAGES).flat().filter(m => !m.read && m.from === "client").length;
+  const unreadNotifs = BUSINESS_ALERTS.length; // live count from notification center
+  const newUploads = 2; // client uploads pending review
 
   // Handler helpers
   const openTask = (client) => setPushModal({ open: true, mode: "task", client });
@@ -32,11 +37,14 @@ export default function CoachDashboard() {
   const openAddon = (addon, clientName = null) => setAddonModal({ open: true, addon, clientName });
 
   const bizTabs = [
-    { id: "overview", label: "Overview", icon: "📊" },
-    { id: "documents", label: "Documents", icon: "📁" },
-    { id: "messages", label: "Messages", icon: "💬", badge: unreadMsgs },
-    { id: "ai", label: "AI Agents", icon: "🤖" },
-    { id: "subscriptions", label: "Subscriptions", icon: "💳" },
+    { id: "overview",        label: "Overview",        icon: "📊" },
+    { id: "documents",       label: "Documents",       icon: "📁" },
+    { id: "client-uploads",  label: "Client Uploads",  icon: "⬆",  badge: newUploads },
+    { id: "messages",        label: "Messages",        icon: "💬",  badge: unreadMsgs },
+    { id: "notifications",   label: "Notifications",   icon: "🔔",  badge: unreadNotifs },
+    { id: "ai",              label: "AI Agents",       icon: "🤖" },
+    { id: "subscriptions",   label: "Subscriptions",   icon: "💳" },
+    { id: "audit",           label: "Audit Log",       icon: "📋" },
   ];
 
   return (
@@ -115,10 +123,10 @@ export default function CoachDashboard() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, fontFamily: "'DM Serif Display',Georgia,serif" }}>
-              {isPersonal ? "Good Morning, Meredith" : activeTab === "overview" ? "Business Dashboard" : activeTab === "documents" ? "Document Vault" : activeTab === "messages" ? "Client Messages" : activeTab === "ai" ? "AI Command Center" : "Subscriptions & Add-Ons"}
+              {isPersonal ? "Good Morning, Meredith" : activeTab === "overview" ? "Business Dashboard" : activeTab === "documents" ? "Document Vault" : activeTab === "client-uploads" ? "Client Uploads" : activeTab === "messages" ? "Client Messages" : activeTab === "notifications" ? "Notification Center" : activeTab === "ai" ? "AI Command Center" : activeTab === "audit" ? "Audit Log" : "Subscriptions & Add-Ons"}
             </h2>
             <p style={{ margin: "3px 0 0", fontSize: 13, color: C.text }}>
-              {isPersonal ? "Your personal day at a glance." : activeTab === "overview" ? "Full view of your coaching practice." : activeTab === "documents" ? "Upload, store, and push documents to individual clients." : activeTab === "messages" ? "Direct messaging with all clients in one place." : activeTab === "ai" ? "Automated agents handling your coaching workflows." : "Client subscription plans and add-on marketplace."}
+              {isPersonal ? "Your personal day at a glance." : activeTab === "overview" ? "Full view of your coaching practice." : activeTab === "documents" ? "Upload, store, and push documents to individual clients." : activeTab === "client-uploads" ? "Review and file documents your clients have uploaded." : activeTab === "messages" ? "Direct messaging with all clients in one place." : activeTab === "notifications" ? "All alerts, at-risk flags, AI items, and system messages." : activeTab === "ai" ? "Automated agents handling your coaching workflows." : activeTab === "audit" ? "Complete activity trail — every action by coach, client, and AI." : "Client subscription plans and add-on marketplace."}
             </p>
           </div>
 
@@ -152,8 +160,16 @@ export default function CoachDashboard() {
           <DocumentsPanel onUpload={openUpload} onPush={openPushDoc} />
         )}
 
+        {!isPersonal && activeTab === "client-uploads" && (
+          <ClientUploadsPanel />
+        )}
+
         {!isPersonal && activeTab === "messages" && (
           <MessagesPanel />
+        )}
+
+        {!isPersonal && activeTab === "notifications" && (
+          <NotificationCenter />
         )}
 
         {!isPersonal && activeTab === "ai" && (
@@ -162,6 +178,10 @@ export default function CoachDashboard() {
 
         {!isPersonal && activeTab === "subscriptions" && (
           <SubscriptionPanel onOpenAddon={addon => openAddon(addon)} />
+        )}
+
+        {!isPersonal && activeTab === "audit" && (
+          <AuditLog />
         )}
       </main>
 
