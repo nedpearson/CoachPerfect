@@ -16,7 +16,7 @@
 
 import { useState, useEffect } from "react";
 import {
-  BarChart3, Calendar, Activity, Award, Target, FileText, Zap, Bell, LogOut,
+  BarChart3, Calendar, Activity, Award, Target, FileText, Zap, Bell, LogOut, Users,
 } from "lucide-react";
 
 import { C } from "./components/theme";
@@ -29,11 +29,13 @@ import SessionsTab from "./components/SessionsTab";
 import DiagnosticsTab from "./components/DiagnosticsTab";
 import WinsTab from "./components/WinsTab";
 import GoalsTab from "./components/GoalsTab";
+import ClientsTab from "./components/ClientsTab";
 
 // ─── TAB CONFIGURATION ───────────────────────────────────────────────────────
 const tabs = [
   { id: "overview",    label: "Overview",      icon: BarChart3 },
   { id: "sessions",    label: "Sessions",      icon: Calendar },
+  { id: "clients",     label: "Clients",       icon: Users },
   { id: "diagnostics", label: "Diagnostics",   icon: Activity },
   { id: "wins",        label: "Wins & Habits", icon: Award },
   { id: "goals",       label: "Goals & ROI",   icon: Target },
@@ -245,6 +247,7 @@ export default function CoachPerfectDash() {
         {/* ─── TAB PANELS ─── */}
         {tab === "overview"    && <OverviewTab />}
         {tab === "sessions"    && <SessionsTab />}
+        {tab === "clients"     && <ClientsTab />}
         {tab === "diagnostics" && <DiagnosticsTab />}
         {tab === "wins"        && <WinsTab />}
         {tab === "goals"       && <GoalsTab />}

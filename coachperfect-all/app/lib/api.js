@@ -157,6 +157,11 @@ async function submitPublicDiagnostic(email, name, businessName, answers) {
   });
 }
 
+// ─── ANALYTICS ────────────────────────────────────
+const getRevenue     = () => request('/api/analytics/revenue');
+const getAnalyticsPipeline = () => request('/api/analytics/pipeline');
+const getWinsSummary = () => request('/api/analytics/wins-summary');
+
 // ─── WAITLIST ─────────────────────────────────────
 async function joinWaitlist(email, name, businessType, referralSource) {
   return fetch(`${BASE_URL}/api/waitlist`, {
@@ -187,6 +192,8 @@ const api = {
   getHabits, createHabit, checkHabit,
   // diagnostics
   getDiagnostics, getDiagnostic, submitPublicDiagnostic,
+  // analytics
+  getRevenue, getAnalyticsPipeline, getWinsSummary,
   // waitlist
   joinWaitlist,
 };

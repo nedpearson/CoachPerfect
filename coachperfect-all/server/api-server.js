@@ -53,6 +53,7 @@ const express = require('express');
 const cors    = require('cors');
 
 const { query, getClient } = require('./lib/db');
+const { send: sendEmail }  = require('../emails/email-templates');
 const { hashPassword, verifyPassword, signAccessToken, signRefreshToken, verifyToken } = require('./lib/auth-helpers');
 const { requireAuth, requirePlan } = require('./middleware/auth');
 const {
@@ -127,6 +128,15 @@ app.post('/api/auth/register', async (req, res) => {
 
     const accessToken  = signAccessToken({ sub: user.id, coachId: coach.id, plan: coach.plan, email: user.email });
     const refreshToken = signRefreshToken(user.id);
+
+    // Send welcome email (non-blocking — don't fail register if email fails)
+    sendEmail('welcome', {
+      to: email.toLowerCase(),
+      coachName: name,
+      isTrial: false,
+      planName: 'Free',
+      isFoundingMember: false,
+    }).catch(err => console.warn('[Email] Welcome send failed:', err.message));
 
     res.status(201).json({ accessToken, refreshToken, coach });
   } catch (err) {
@@ -213,31 +223,68 @@ app.post('/api/auth/refresh', async (req, res) => {
 app.get('/api/dashboard', requireAuth, async (req, res) => {
   const coachId = req.coach.id;
   try {
-    const [clientsRes, sessionsRes, diagnosticsRes, tasksRes] = await Promise.all([
+    const [clientsRes, sessionsRes, diagnosticsRes, tasksRes, revenueRes, latestDiagRes, upcomingRes, winsRes] = await Promise.all([
       query(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'active')::int AS active FROM clients WHERE coach_id = $1`, [coachId]),
-      query(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE status = 'no_show')::int AS no_shows, COUNT(*) FILTER (WHERE scheduled_at >= date_trunc('month', NOW()))::int AS this_month FROM sessions WHERE coach_id = $1`, [coachId]),
+      query(`SELECT COUNT(*)::int AS total,
+               COUNT(*) FILTER (WHERE status = 'no_show')::int AS no_shows,
+               COUNT(*) FILTER (WHERE status = 'late_cancel')::int AS late_cancels,
+               COUNT(*) FILTER (WHERE scheduled_at >= date_trunc('month', NOW()))::int AS this_month
+             FROM sessions WHERE coach_id = $1`, [coachId]),
       query(`SELECT COUNT(*)::int AS total, AVG(overall_score)::numeric AS avg_score FROM diagnostics WHERE coach_id = $1 AND overall_score IS NOT NULL`, [coachId]),
-      query(`SELECT COUNT(*)::int AS total, COUNT(*) FILTER (WHERE completed_at IS NULL)::int AS pending FROM tasks WHERE coach_id = $1`, [coachId]),
+      query(`SELECT * FROM tasks WHERE coach_id = $1 AND completed_at IS NULL ORDER BY due_date ASC NULLS LAST, created_at DESC LIMIT 8`, [coachId]),
+      // Monthly revenue: sum of coaching_fee for active clients, spread over coaching_months
+      query(`SELECT
+               COALESCE(SUM(coaching_fee), 0)::numeric AS total_fees,
+               COALESCE(SUM(CASE WHEN status='active' THEN coaching_fee / NULLIF(coaching_months,0) ELSE 0 END), 0)::numeric AS monthly_mrr
+             FROM clients WHERE coach_id = $1`, [coachId]),
+      // Latest diagnostic for radar chart
+      query(`SELECT id, overall_score, categories, completed_at FROM diagnostics WHERE coach_id = $1 AND overall_score IS NOT NULL ORDER BY completed_at DESC LIMIT 2`, [coachId]),
+      // Upcoming sessions as pipeline
+      query(`SELECT s.*, c.name AS client_name FROM sessions s LEFT JOIN clients c ON c.id = s.client_id WHERE s.coach_id = $1 AND s.scheduled_at >= NOW() AND s.status = 'scheduled' ORDER BY s.scheduled_at ASC LIMIT 5`, [coachId]),
+      query(`SELECT COUNT(*)::int AS total FROM wins WHERE coach_id = $1`, [coachId]),
     ]);
 
     const clients     = clientsRes.rows[0];
     const sessions    = sessionsRes.rows[0];
     const diagnostics = diagnosticsRes.rows[0];
-    const tasks       = tasksRes.rows[0];
+    const tasks       = tasksRes.rows;
+    const revenue     = revenueRes.rows[0];
+    const diagHistory = latestDiagRes.rows;
+    const upcoming    = upcomingRes.rows;
+    const wins        = winsRes.rows[0];
 
     const attendanceRate = sessions.total > 0
-      ? Math.round(((sessions.total - sessions.no_shows) / sessions.total) * 100)
+      ? Math.round(((sessions.total - sessions.no_shows - sessions.late_cancels) / sessions.total) * 100)
       : 100;
+
+    // Latest diagnostic radar data
+    const latestDiag = diagHistory[0] || null;
+    const prevDiag   = diagHistory[1] || null;
+
+    // Build recommendations from latest diag
+    let recommendations = [];
+    if (latestDiag?.categories) {
+      const { getRecommendations } = require('./lib/scoring');
+      recommendations = getRecommendations(latestDiag.categories).slice(0, 3);
+    }
 
     res.json({
       kpis: {
-        activeClients:   clients.active,
-        totalClients:    clients.total,
+        activeClients:     clients.active,
+        totalClients:      clients.total,
         sessionsThisMonth: sessions.this_month,
         attendanceRate,
-        avgDiagScore:    diagnostics.avg_score ? Math.round(parseFloat(diagnostics.avg_score)) : null,
-        openTasks:       tasks.pending,
+        avgDiagScore:      diagnostics.avg_score ? Math.round(parseFloat(diagnostics.avg_score)) : null,
+        openTasks:         tasks.filter(t => !t.completed_at).length,
+        totalWins:         wins.total,
+        mrr:               Math.round(parseFloat(revenue.monthly_mrr)),
+        totalFees:         Math.round(parseFloat(revenue.total_fees)),
       },
+      tasks,
+      upcoming,
+      recommendations,
+      latestDiag:  latestDiag  ? { id: latestDiag.id, score: latestDiag.overall_score, categories: latestDiag.categories, date: latestDiag.completed_at } : null,
+      prevDiag:    prevDiag    ? { id: prevDiag.id,   score: prevDiag.overall_score,   categories: prevDiag.categories,   date: prevDiag.completed_at }   : null,
     });
   } catch (err) {
     console.error('[Dashboard]', err.message);
@@ -342,7 +389,29 @@ app.post('/api/sessions', requireAuth, async (req, res) => {
        VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING *`,
       [req.coach.id, clientId || null, scheduledAt, durationMin || 60, sessionType || 'coaching', notes || null, status || 'scheduled']
     );
-    res.status(201).json({ session: rows[0] });
+    const session = rows[0];
+
+    // Send session reminder email to coach (non-blocking)
+    if (scheduledAt) {
+      const sessionDate = new Date(scheduledAt);
+      let clientName = 'your client';
+      if (clientId) {
+        const cr = await query(`SELECT name FROM clients WHERE id = $1`, [clientId]).catch(() => ({ rows: [] }));
+        if (cr.rows[0]) clientName = cr.rows[0].name;
+      }
+      sendEmail('sessionReminder', {
+        to: req.user.email,
+        coachName: req.coach.name,
+        clientName,
+        sessionDate: sessionDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' }),
+        sessionTime: sessionDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', timeZoneName: 'short' }),
+        sessionType: sessionType || 'Coaching',
+        duration: `${durationMin || 60} min`,
+        prepLink: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/?session=${session.id}`,
+      }).catch(err => console.warn('[Email] Session reminder send failed:', err.message));
+    }
+
+    res.status(201).json({ session });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -849,6 +918,96 @@ app.post('/api/waitlist', async (req, res) => {
   } catch (err) {
     console.error('[Waitlist]', err.message);
     res.status(500).json({ error: 'Failed to join waitlist' });
+  }
+});
+
+// ═══════════════════════════════════════════════════
+// ANALYTICS
+// ═══════════════════════════════════════════════════
+
+// GET /api/analytics/revenue — last 6 months of monthly coaching fees
+app.get('/api/analytics/revenue', requireAuth, async (req, res) => {
+  try {
+    // Group sessions by month to track activity (as proxy for revenue activity)
+    const { rows } = await query(
+      `SELECT
+         TO_CHAR(DATE_TRUNC('month', scheduled_at), 'Mon') AS month,
+         DATE_TRUNC('month', scheduled_at) AS month_date,
+         COUNT(*) FILTER (WHERE status = 'attended')::int AS sessions,
+         COUNT(*) FILTER (WHERE status = 'no_show')::int AS no_shows
+       FROM sessions
+       WHERE coach_id = $1
+         AND scheduled_at >= NOW() - INTERVAL '6 months'
+       GROUP BY DATE_TRUNC('month', scheduled_at)
+       ORDER BY month_date ASC`,
+      [req.coach.id]
+    );
+
+    // Also get monthly MRR from active clients
+    const { rows: clientRows } = await query(
+      `SELECT
+         COALESCE(SUM(coaching_fee / NULLIF(coaching_months, 0)), 0)::numeric AS mrr
+       FROM clients
+       WHERE coach_id = $1 AND status = 'active'`,
+      [req.coach.id]
+    );
+
+    const mrr = Math.round(parseFloat(clientRows[0]?.mrr || 0));
+
+    // Build last 6 months even if no sessions
+    const months = [];
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(1);
+      d.setMonth(d.getMonth() - i);
+      const label = d.toLocaleDateString('en-US', { month: 'short' });
+      const existing = rows.find(r => r.month === label);
+      months.push({
+        month:    label,
+        sessions: existing?.sessions || 0,
+        noShows:  existing?.no_shows || 0,
+        revenue:  mrr, // flat MRR for now; historical could come from payments table
+      });
+    }
+
+    res.json({ months, currentMrr: mrr });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/analytics/pipeline — upcoming sessions for pipeline view
+app.get('/api/analytics/pipeline', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT s.*, c.name AS client_name, c.industry, c.coaching_fee
+         FROM sessions s
+         LEFT JOIN clients c ON c.id = s.client_id
+        WHERE s.coach_id = $1
+          AND s.scheduled_at >= NOW()
+          AND s.status IN ('scheduled', 'confirmed')
+        ORDER BY s.scheduled_at ASC
+        LIMIT 20`,
+      [req.coach.id]
+    );
+    res.json({ pipeline: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/analytics/wins-summary
+app.get('/api/analytics/wins-summary', requireAuth, async (req, res) => {
+  try {
+    const { rows } = await query(
+      `SELECT category, COUNT(*)::int AS count
+         FROM wins WHERE coach_id = $1
+         GROUP BY category ORDER BY count DESC`,
+      [req.coach.id]
+    );
+    res.json({ byCategory: rows });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
