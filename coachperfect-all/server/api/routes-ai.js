@@ -13,21 +13,51 @@ const AGENTS = {
   'onboarding':      { name: 'Onboarding Agent',         minPlan: 'free',         icon: '🚀', description: 'Handles full client onboarding: welcome email, diagnostic invite, portal setup.' },
 };
 
-// ─── MOCK AI RUNNER (replace with OpenAI call in production) ─────────────────
+// ─── AI RUNNER — OpenAI if configured, mock fallback otherwise ───────────────
+let openaiClient = null;
+if (process.env.AI_ENABLED === 'true' && process.env.OPENAI_API_KEY) {
+  try { const { OpenAI } = require('openai'); openaiClient = new OpenAI({ apiKey: process.env.OPENAI_API_KEY }); } catch (_) {}
+}
+
+const AGENT_PROMPTS = {
+  'session-prep':    'You are a business coaching AI. Write a concise pre-session brief (3-4 bullet points) for the coach based on the client data provided. Focus on health score, overdue tasks, goals at risk, and one recommended session focus.',
+  'at-risk':         'You are a business coaching AI. Analyze client data and write a 2-3 sentence at-risk summary explaining warning signs (overdue tasks, days since last session, declining scores). Be direct and actionable.',
+  'progress-report': 'You are a business coaching AI. Write a 4-6 sentence quarterly progress report for this client. Highlight top gains, areas needing attention, and one key recommendation.',
+  'weekly-pulse':    'You are a business coaching AI. Write a brief weekly pulse summary (2-3 sentences) noting client engagement and key areas to watch this week.',
+  'smart-followup':  'You are a business coaching AI. Based on the client diagnostic gaps, recommend 2-3 specific follow-up actions or resources. Be concrete — name the category, the gap, and the suggestion.',
+  'onboarding':      'You are a business coaching AI. Write a brief onboarding completion summary (2-3 sentences) confirming what was activated and what the client should expect in their first week.',
+};
+
 async function runAgent(agentId, client, context = {}) {
   const agent = AGENTS[agentId];
   if (!agent) throw new Error(`Unknown agent: ${agentId}`);
 
-  const outputs = {
-    'session-prep': `Session Brief for ${client.name}: Health Score ${client.health_score || 'N/A'}. Focus areas: review recent task completion and discuss goals progress. Watch for financial avoidance patterns noted last session.`,
-    'at-risk': `${client.name} flagged: ${context.overdueCount || 0} overdue tasks, last session ${context.daysSince || 'unknown'} days ago. Recommend immediate outreach.`,
-    'progress-report': `Q Report for ${client.name}: Business Health Score improved from baseline. Top gains in Operations (+8). Needs attention: Financial category (-3).`,
-    'weekly-pulse': `Pulse check sent to ${client.name}. Previous response rate: 80%. Auto-summarizing when response received.`,
-    'smart-followup': `Recommended resources for ${client.name} based on diagnostic gap in Strategy category: 3 articles, 1 template, and 1 workshop link queued for delivery.`,
-    'onboarding': `Onboarding complete for ${client.name}: welcome email sent, 48-question diagnostic link delivered, portal access activated, first session scheduled.`,
+  // Mock fallback values
+  const mocks = {
+    'session-prep':    `Session Brief for ${client.name}: Health Score ${client.health_score || 'N/A'}. Focus areas: review recent task completion and discuss goals progress. Watch for financial avoidance patterns noted last session.`,
+    'at-risk':         `${client.name} flagged: ${context.overdueCount || 0} overdue tasks, last session ${context.daysSince || 'unknown'} days ago. Recommend immediate outreach.`,
+    'progress-report': `Q Report for ${client.name}: Business Health improved from baseline. Top gains in Operations (+8). Needs attention: Financial (-3).`,
+    'weekly-pulse':    `Pulse check sent to ${client.name}. Previous response rate: 80%. Auto-summarizing when response received.`,
+    'smart-followup':  `Recommended resources for ${client.name} based on diagnostic gap in Strategy: 3 articles, 1 template, 1 workshop link queued.`,
+    'onboarding':      `Onboarding complete for ${client.name}: welcome email sent, diagnostic link delivered, portal access activated, first session scheduled.`,
   };
 
-  return outputs[agentId] || 'Agent completed successfully.';
+  if (!openaiClient) return mocks[agentId] || 'Agent completed successfully.';
+
+  try {
+    const clientCtx = JSON.stringify({ name: client.name, company: client.company, health_score: client.health_score, overdueCount: context.overdueCount || 0, daysSinceSession: context.daysSince || 'unknown' });
+    const completion = await openaiClient.chat.completions.create({
+      model: 'gpt-4o-mini',
+      max_tokens: 300,
+      messages: [
+        { role: 'system', content: AGENT_PROMPTS[agentId] },
+        { role: 'user',   content: `Client data: ${clientCtx}` },
+      ],
+    });
+    return completion.choices[0]?.message?.content?.trim() || mocks[agentId];
+  } catch (_) {
+    return mocks[agentId]; // graceful fallback on API error
+  }
 }
 
 module.exports = function aiRoutes(db) {

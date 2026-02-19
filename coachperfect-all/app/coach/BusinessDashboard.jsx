@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   C, CLIENTS, BUSINESS_ALERTS, BUSINESS_TASKS,
   BUSINESS_SCHEDULE, ACTIVITY_FEED, DIAGNOSTIC_CATEGORIES, alertTypeColors
 } from "./styles.js";
+import { api } from "../hooks/useAPI.js";
 import {
   Card, CardTitle, KPICard, DiagnosticBar,
   HealthDot, PriorityDot, ProgressBar
@@ -70,11 +71,19 @@ function ClientDetailPanel({ client, onClose, onPushTask, onSendReminder, onUplo
 // ─── BUSINESS DASHBOARD ──────────────────────────────────────────────────────────
 export function BusinessDashboard({ onPushTask, onSendReminder, onUploadDoc, onPushDoc, onNewClient, onShowQR }) {
   const [selectedClientId, setSelectedClientId] = useState(null);
-  const client = CLIENTS.find(c => c.id === selectedClientId);
-  const activeClients = CLIENTS.filter(c => c.status === "active").length;
-  const atRisk = CLIENTS.filter(c => c.health === "red").length;
-  const totalOverdue = CLIENTS.reduce((s, c) => s + c.overdueTasks, 0);
-  const totalMRR = CLIENTS.reduce((s, c) => s + c.mrr, 0);
+  const [liveClients, setLiveClients]           = useState(null);
+
+  useEffect(() => {
+    api.get("/clients").then(data => { if (Array.isArray(data)) setLiveClients(data); }).catch(() => {});
+  }, []);
+
+  const clients       = liveClients || CLIENTS;
+  const isLive        = !!liveClients;
+  const client        = clients.find(c => c.id === selectedClientId);
+  const activeClients = clients.filter(c => c.status === "active").length;
+  const atRisk        = clients.filter(c => c.health === "red").length;
+  const totalOverdue  = clients.reduce((s, c) => s + (c.overdueTasks || 0), 0);
+  const totalMRR      = clients.reduce((s, c) => s + (c.mrr || 0), 0);
   const planColors = { Starter: C.info, Professional: C.gold, Business: C.success };
 
   return (
@@ -86,6 +95,9 @@ export function BusinessDashboard({ onPushTask, onSendReminder, onUploadDoc, onP
         <KPICard icon="⚡" label="Overdue Items" value={totalOverdue} subtext="across all clients" trend={-15} />
         <KPICard icon="💰" label="MRR" value={`$${totalMRR.toLocaleString()}`} subtext="+$189 add-ons" trend={18} />
         <KPICard icon="🎯" label="Avg Health Score" value="66" subtext="out of 100" trend={5} />
+      </div>
+      <div style={{ textAlign: "right", fontSize: 10, color: isLive ? C.success : `${C.text}88`, marginTop: -10, marginBottom: 10, fontWeight: 600 }}>
+        {isLive ? "● Live data" : "○ Demo mode"}
       </div>
 
       {client && (
@@ -116,7 +128,7 @@ export function BusinessDashboard({ onPushTask, onSendReminder, onUploadDoc, onP
                   </tr>
                 </thead>
                 <tbody>
-                  {CLIENTS.map(c => {
+                  {clients.map(c => {
                     const comp = Math.round((c.tasksCompleted / c.totalTasks) * 100);
                     return (
                       <tr key={c.id} onClick={() => setSelectedClientId(selectedClientId === c.id ? null : c.id)}

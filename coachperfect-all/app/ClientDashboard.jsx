@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   C, CLIENT, CLIENT_HEALTH, CLIENT_GOALS, CLIENT_TASKS,
   CLIENT_CALENDAR, CLIENT_ALERTS, CLIENT_DOCUMENTS,
   CLIENT_WINS, SESSION_HISTORY, alertIconBg,
 } from "./client/clientData.js";
+import { ClientOnboarding } from "./plugins/ClientOnboarding.jsx";
+import { api } from "./hooks/useAPI.js";
 
 // ─── PRIMITIVES ──────────────────────────────────────────────────────────────────
 function Card({ children, style }) {
@@ -404,6 +406,12 @@ function MessageCoachModal({ isOpen, onClose }) {
 
 // ─── MAIN CLIENT DASHBOARD ───────────────────────────────────────────────────────
 export default function ClientDashboard() {
+  // ── All hooks first (Rules of Hooks) ──────────────────────────────────────
+  const [showOnboarding, setShowOnboarding] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const triggered = params.get("onboard") === "1" || params.get("newClient") === "1";
+    return triggered && !localStorage.getItem("cp_onboarded");
+  });
   const [tab, setTab] = useState("overview");
   const [notifOpen, setNotifOpen] = useState(false);
   const [msgOpen, setMsgOpen] = useState(false);
@@ -418,6 +426,22 @@ export default function ClientDashboard() {
     { id: "documents",  label: "Documents", icon: "📁", badge: unreadDocs },
     { id: "sessions",   label: "Sessions",  icon: "💬" },
   ];
+
+  const handleOnboardingComplete = async (form) => {
+    try { await api.post("/onboarding", { ...form, coachId: CLIENT.coachId }); } catch (_) {}
+    localStorage.setItem("cp_onboarded", "1");
+    setShowOnboarding(false);
+  };
+
+  if (showOnboarding) {
+    return (
+      <ClientOnboarding
+        coachName={CLIENT.coachName || "Your Coach"}
+        clientName={CLIENT.name}
+        onComplete={handleOnboardingComplete}
+      />
+    );
+  }
 
   return (
     <div style={{ minHeight: "100vh", background: C.cream, fontFamily: "'DM Sans','Inter',system-ui,sans-serif" }}>

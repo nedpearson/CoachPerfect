@@ -77,6 +77,7 @@ const notificationRoutes = require('./api/routes-notifications')(db, wsBroadcast
 const aiRoutes           = require('./api/routes-ai')(db);
 const subscriptionRoutes = require('./api/routes-subscriptions')(db);
 const pluginRoutes       = require('./api/routes-plugins')(db);
+const pushRoutes         = require('./api/routes-push')(db);
 
 app.use('/api', clientRoutes);
 app.use('/api', documentRoutes);
@@ -84,6 +85,7 @@ app.use('/api', notificationRoutes);
 app.use('/api', aiRoutes);
 app.use('/api', subscriptionRoutes);
 app.use('/api', pluginRoutes);
+app.use('/api', pushRoutes);
 
 // ─── QR DATA — coach install URL + per-client URLs ────────────────────────────
 // Set PUBLIC_URL in .env to your deployed domain; falls back to local IP.
