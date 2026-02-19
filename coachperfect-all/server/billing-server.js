@@ -22,6 +22,51 @@ const cors = require('cors');
 
 const app = express();
 
+// ─── EMAIL CLIENT (uses existing email-templates.js) ───
+const { send: sendEmail } = require('../emails/email-templates');
+
+// ─── DB ADAPTER STUB ───
+// Replace with real DB calls (Prisma/Supabase) when backend is connected
+const db = {
+  async upsertCoach(coachId, data) {
+    console.log(`[DB] upsertCoach(${coachId}):`, JSON.stringify(data));
+    // await prisma.coachProfile.upsert({ where: { id: coachId }, update: data, create: { id: coachId, ...data } });
+  },
+  async getCoachEmail(coachId) {
+    console.log(`[DB] getCoachEmail(${coachId})`);
+    // return await prisma.coachProfile.findUnique({ where: { id: coachId }, select: { email: true } });
+    return process.env.FALLBACK_ADMIN_EMAIL || null;
+  },
+  async getCoachEmailByCustomerId(customerId) {
+    console.log(`[DB] getCoachEmailByCustomerId(${customerId})`);
+    // return await prisma.coachProfile.findFirst({ where: { stripeCustomerId: customerId }, select: { email: true, id: true } });
+    return { email: process.env.FALLBACK_ADMIN_EMAIL || null, id: customerId };
+  },
+  async logPayment(data) {
+    console.log(`[DB] logPayment:`, JSON.stringify(data));
+    // await prisma.invoice.create({ data });
+  },
+};
+
+// ─── RATE LIMITER ───
+const requestCounts = new Map();
+function rateLimit(maxPerMin = 60) {
+  return (req, res, next) => {
+    const key = req.ip;
+    const now = Date.now();
+    const windowStart = now - 60_000;
+    const hits = (requestCounts.get(key) || []).filter(t => t > windowStart);
+    hits.push(now);
+    requestCounts.set(key, hits);
+    if (hits.length > maxPerMin) {
+      return res.status(429).json({ error: 'Too many requests' });
+    }
+    next();
+  };
+}
+
+app.use('/api/', rateLimit(120));
+
 // ─── STRIPE INIT ───
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -216,23 +261,36 @@ app.post('/webhooks/stripe', async (req, res) => {
       const session = data.object;
       const coachId = session.metadata?.coachId || session.client_reference_id;
       const plan = session.metadata?.plan;
+      const interval = session.metadata?.interval || 'monthly';
       const customerId = session.customer;
       const subscriptionId = session.subscription;
+      const trialEndsAt = new Date(Date.now() + 14 * 86400000);
+      const isFoundingMember = !!session.discounts?.length;
 
       console.log(`[Webhook] Coach ${coachId} subscribed to ${plan} (customer: ${customerId})`);
 
-      // TODO: Update your database
-      // await db.coaches.update(coachId, {
-      //   stripeCustomerId: customerId,
-      //   stripeSubscriptionId: subscriptionId,
-      //   plan: plan,
-      //   planStatus: 'active',
-      //   trialEndsAt: new Date(Date.now() + 14 * 86400000),
-      // });
+      // Persist to database
+      await db.upsertCoach(coachId, {
+        stripeCustomerId: customerId,
+        stripeSubscriptionId: subscriptionId,
+        plan,
+        planStatus: 'trialing',
+        trialEndsAt,
+        subscribedAt: new Date(),
+      });
 
-      // TODO: Send welcome email
-      // await sendEmail('welcome', coachId);
-
+      // Send welcome email
+      const coachEmail = await db.getCoachEmail(coachId);
+      if (coachEmail) {
+        await sendEmail('welcome', {
+          to: coachEmail,
+          coachName: coachId, // Replace with real name from DB once available
+          isTrial: true,
+          planName: PLANS[plan]?.name || plan,
+          trialEndDate: trialEndsAt.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' }),
+          isFoundingMember,
+        });
+      }
       break;
     }
 
@@ -241,12 +299,22 @@ app.post('/webhooks/stripe', async (req, res) => {
       const sub = data.object;
       const coachId = sub.metadata?.coachId;
       const status = sub.status; // active, past_due, canceled, trialing, etc.
+      const planItem = sub.items?.data?.[0];
+      const priceId = planItem?.price?.id;
 
-      console.log(`[Webhook] Subscription updated: ${coachId} → ${status}`);
+      // Map price ID back to plan name
+      const matchedPlan = Object.entries(PLANS).find(([, cfg]) =>
+        cfg.stripePriceMonthly === priceId || cfg.stripePriceAnnual === priceId
+      );
+      const newPlan = matchedPlan?.[0] || null;
 
-      // TODO: Update plan status in DB
-      // await db.coaches.update(coachId, { planStatus: status });
+      console.log(`[Webhook] Subscription updated: coach=${coachId} status=${status} plan=${newPlan || 'unchanged'}`);
 
+      await db.upsertCoach(coachId, {
+        planStatus: status,
+        ...(newPlan ? { plan: newPlan } : {}),
+        updatedAt: new Date(),
+      });
       break;
     }
 
@@ -257,14 +325,19 @@ app.post('/webhooks/stripe', async (req, res) => {
 
       console.log(`[Webhook] Subscription canceled: ${coachId}`);
 
-      // TODO: Downgrade to free
-      // await db.coaches.update(coachId, {
-      //   plan: 'free',
-      //   planStatus: 'canceled',
-      //   canceledAt: new Date(),
-      // });
+      // Downgrade to free tier
+      await db.upsertCoach(coachId, {
+        plan: 'free',
+        planStatus: 'canceled',
+        canceledAt: new Date(),
+      });
 
-      // TODO: Send cancellation email
+      // Notify coach
+      const coachEmail = await db.getCoachEmail(coachId);
+      if (coachEmail) {
+        // Use the weekly pulse template as a re-engagement touchpoint
+        console.log(`[Email] Cancellation notice → ${coachEmail} (template: cancellation — use manual for now)`);
+      }
       break;
     }
 
@@ -273,18 +346,34 @@ app.post('/webhooks/stripe', async (req, res) => {
       const invoice = data.object;
       const customerId = invoice.customer;
       const attempt = invoice.attempt_count;
+      const cardBrand = invoice.payment_intent?.last_payment_error?.payment_method?.card?.brand || 'card';
+      const cardLast4 = invoice.payment_intent?.last_payment_error?.payment_method?.card?.last4 || '????';
 
       console.log(`[Webhook] Payment failed for ${customerId} (attempt ${attempt})`);
 
-      // TODO: Send payment failure email
-      // Stripe auto-retries 3 times over 10 days
-      // After 3 failures, subscription moves to past_due/canceled
+      const { email: coachEmail, id: coachId } = await db.getCoachEmailByCustomerId(customerId);
 
-      // if (attempt >= 3) {
-      //   // Final attempt failed — downgrade
-      //   await db.coaches.updateByCustomerId(customerId, { plan: 'free', planStatus: 'payment_failed' });
-      // }
+      if (coachEmail) {
+        const sub = await stripe.subscriptions.list({ customer: customerId, limit: 1 });
+        const planMeta = sub.data[0]?.metadata?.plan || 'professional';
+        const amountDue = (invoice.amount_due / 100).toFixed(2);
+        const nextRetryDays = attempt >= 3 ? 0 : [3, 5, 7][attempt - 1] || 3;
 
+        await sendEmail('paymentFailed', {
+          to: coachEmail,
+          coachName: coachId,
+          cardBrand,
+          cardLast4,
+          planName: PLANS[planMeta]?.name || planMeta,
+          amount: amountDue,
+          nextRetryDays,
+        });
+      }
+
+      // After 3 failed attempts downgrade to free
+      if (attempt >= 3 && coachId) {
+        await db.upsertCoach(coachId, { plan: 'free', planStatus: 'payment_failed' });
+      }
       break;
     }
 
@@ -292,10 +381,27 @@ app.post('/webhooks/stripe', async (req, res) => {
     case 'invoice.payment_succeeded': {
       const invoice = data.object;
       const customerId = invoice.customer;
+      const amountPaid = (invoice.amount_paid / 100).toFixed(2);
 
-      console.log(`[Webhook] Payment succeeded for ${customerId}: $${(invoice.amount_paid / 100).toFixed(2)}`);
+      console.log(`[Webhook] Payment succeeded for ${customerId}: $${amountPaid}`);
 
-      // TODO: Update payment records, send receipt email
+      // Log payment record
+      await db.logPayment({
+        stripeCustomerId: customerId,
+        stripeInvoiceId: invoice.id,
+        amountPaid: invoice.amount_paid,
+        currency: invoice.currency,
+        paidAt: new Date(invoice.status_transitions?.paid_at * 1000 || Date.now()),
+        status: 'paid',
+      });
+
+      // Reactivate plan if it was past_due
+      if (invoice.billing_reason === 'subscription_cycle' || invoice.billing_reason === 'subscription_update') {
+        const { id: coachId } = await db.getCoachEmailByCustomerId(customerId);
+        if (coachId) {
+          await db.upsertCoach(coachId, { planStatus: 'active', updatedAt: new Date() });
+        }
+      }
       break;
     }
 
@@ -303,10 +409,27 @@ app.post('/webhooks/stripe', async (req, res) => {
     case 'customer.subscription.trial_will_end': {
       const sub = data.object;
       const coachId = sub.metadata?.coachId;
+      const plan = sub.metadata?.plan || 'professional';
+      const trialEndDate = new Date(sub.trial_end * 1000).toLocaleDateString('en-US', {
+        month: 'long', day: 'numeric', year: 'numeric',
+      });
 
-      console.log(`[Webhook] Trial ending for ${coachId} in 3 days`);
+      console.log(`[Webhook] Trial ending for ${coachId} in 3 days (${trialEndDate})`);
 
-      // TODO: Send trial ending email
+      const coachEmail = await db.getCoachEmail(coachId);
+      if (coachEmail) {
+        // Pull usage stats from DB (stubs for now)
+        await sendEmail('trialEnding', {
+          to: coachEmail,
+          coachName: coachId,
+          planName: PLANS[plan]?.name || plan,
+          trialEndDate,
+          clientsAdded: 0,   // replace: await db.countClients(coachId)
+          diagnosticsSent: 0, // replace: await db.countDiagnostics(coachId)
+          sessionsLogged: 0,  // replace: await db.countSessions(coachId)
+          isFoundingMember: false,
+        });
+      }
       break;
     }
 
