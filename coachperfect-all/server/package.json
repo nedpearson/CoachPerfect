@@ -1,18 +1,26 @@
 {
-  "name": "coachperfect-billing-server",
+  "name": "coachperfect-server",
   "version": "1.0.0",
-  "description": "Coach Perfect — Stripe billing + webhook server with email automation",
-  "main": "billing-server.js",
+  "description": "Coach Perfect — API server + Stripe billing",
   "scripts": {
-    "start": "node billing-server.js",
-    "dev": "node --watch billing-server.js"
+    "start:api":     "node api-server.js",
+    "start:billing": "node billing-server.js",
+    "dev:api":       "node --watch api-server.js",
+    "dev:billing":   "node --watch billing-server.js",
+    "dev":           "concurrently \"npm run dev:api\" \"npm run dev:billing\"",
+    "migrate":       "psql -d $PG_DATABASE -f migrations/001_initial_schema.sql"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^16.4.5",
-    "express": "^4.18.2",
-    "resend": "^3.2.0",
-    "stripe": "^14.21.0"
+    "bcrypt":      "^5.1.1",
+    "concurrently": "^8.2.2",
+    "cors":        "^2.8.5",
+    "dotenv":      "^16.4.5",
+    "express":     "^4.18.2",
+    "jsonwebtoken": "^9.0.2",
+    "openai":      "^4.47.1",
+    "pg":          "^8.11.5",
+    "resend":      "^3.2.0",
+    "stripe":      "^14.21.0"
   },
   "engines": {
     "node": ">=18"

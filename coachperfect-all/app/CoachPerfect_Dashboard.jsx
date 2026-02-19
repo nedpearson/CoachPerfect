@@ -2,7 +2,11 @@
 // COACH PERFECT — MAIN DASHBOARD
 // ═══════════════════════════════════════════════════
 //
-// Modular layout that imports each tab from ./components/
+// Auth gate: shows LoginScreen until user is authenticated.
+// After login, renders the full dashboard with the coach's
+// name and plan displayed in the header.
+//
+// Tab components:
 //   - OverviewTab:    KPIs, radar chart, revenue, tasks, recs, pipeline
 //   - SessionsTab:    No-show tracker, session prep brief, session log
 //   - DiagnosticsTab: Before/after scorecard, radar overlay, category breakdown
@@ -10,13 +14,15 @@
 //   - GoalsTab:       Goal tracker + ROI calculator
 //
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
-  BarChart3, Calendar, Activity, Award, Target, FileText, Zap, Bell,
+  BarChart3, Calendar, Activity, Award, Target, FileText, Zap, Bell, LogOut,
 } from "lucide-react";
 
 import { C } from "./components/theme";
 import { Card } from "./components/ui";
+import LoginScreen from "./components/LoginScreen";
+import api, { getToken } from "./lib/api";
 
 import OverviewTab from "./components/OverviewTab";
 import SessionsTab from "./components/SessionsTab";
@@ -37,7 +43,59 @@ const tabs = [
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────────────────
 export default function CoachPerfectDash() {
-  const [tab, setTab] = useState("overview");
+  const [tab, setTab]     = useState("overview");
+  const [coach, setCoach] = useState(null);   // null = not authenticated yet
+  const [checked, setChecked] = useState(false); // true once we've checked token
+
+  // On mount, restore session from localStorage token
+  useEffect(() => {
+    if (getToken()) {
+      // Token exists — restore minimal coach state from localStorage
+      const saved = localStorage.getItem("cp_coach");
+      if (saved) {
+        try { setCoach(JSON.parse(saved)); } catch {}
+      }
+    }
+    setChecked(true);
+
+    // Listen for forced logout (e.g. expired refresh token)
+    const onLogout = () => { setCoach(null); localStorage.removeItem("cp_coach"); };
+    window.addEventListener("cp:logout", onLogout);
+    return () => window.removeEventListener("cp:logout", onLogout);
+  }, []);
+
+  const handleAuth = (coachData) => {
+    setCoach(coachData);
+    localStorage.setItem("cp_coach", JSON.stringify(coachData));
+  };
+
+  const handleLogout = () => {
+    api.logout();
+    setCoach(null);
+    localStorage.removeItem("cp_coach");
+  };
+
+  // Spinner while checking stored token
+  if (!checked) {
+    return (
+      <div style={{ minHeight: "100vh", background: C.surface, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <span style={{ fontSize: 13, color: C.muted }}>Loading…</span>
+      </div>
+    );
+  }
+
+  // Auth gate
+  if (!coach) {
+    return <LoginScreen onAuth={handleAuth} />;
+  }
+
+  // ─── Initials for avatar ───
+  const initials = (coach.name || "Me")
+    .split(" ")
+    .map((w) => w[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
     <div style={{ minHeight: "100vh", background: C.surface, fontFamily: "'Inter',-apple-system,system-ui,sans-serif" }}>
@@ -85,6 +143,7 @@ export default function CoachPerfectDash() {
             })}
           </nav>
         </div>
+
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <div style={{ position: "relative" }}>
             <Bell size={17} style={{ opacity: 0.65, cursor: "pointer" }} />
@@ -101,6 +160,24 @@ export default function CoachPerfectDash() {
               }}
             />
           </div>
+
+          {/* Plan badge */}
+          <span
+            style={{
+              fontSize: 10,
+              fontWeight: 700,
+              padding: "2px 8px",
+              borderRadius: 20,
+              background: "rgba(255,255,255,0.15)",
+              color: "#fff",
+              textTransform: "uppercase",
+              letterSpacing: 0.5,
+            }}
+          >
+            {coach.plan || "free"}
+          </span>
+
+          {/* Avatar */}
           <div
             style={{
               width: 30,
@@ -110,13 +187,31 @@ export default function CoachPerfectDash() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 700,
               cursor: "pointer",
+              title: coach.name,
             }}
           >
-            ME
+            {initials}
           </div>
+
+          {/* Logout */}
+          <button
+            onClick={handleLogout}
+            title="Sign out"
+            style={{
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.55)",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              padding: 0,
+            }}
+          >
+            <LogOut size={15} />
+          </button>
         </div>
       </header>
 
@@ -128,7 +223,7 @@ export default function CoachPerfectDash() {
               {tabs.find((t) => t.id === tab)?.label}
             </h1>
             <p style={{ margin: "3px 0 0", fontSize: 13, color: C.muted }}>
-              Welcome back, Meredith. Here's your business at a glance.
+              Welcome back, {coach.name?.split(" ")[0] || "Coach"}. Here&rsquo;s your business at a glance.
             </p>
           </div>
           <select

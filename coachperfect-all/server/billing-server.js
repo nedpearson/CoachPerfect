@@ -25,26 +25,73 @@ const app = express();
 // ─── EMAIL CLIENT (uses existing email-templates.js) ───
 const { send: sendEmail } = require('../emails/email-templates');
 
-// ─── DB ADAPTER STUB ───
-// Replace with real DB calls (Prisma/Supabase) when backend is connected
+// ─── DB ADAPTER (local PostgreSQL via pg) ───
+const { query } = require('./lib/db');
+
 const db = {
   async upsertCoach(coachId, data) {
-    console.log(`[DB] upsertCoach(${coachId}):`, JSON.stringify(data));
-    // await prisma.coachProfile.upsert({ where: { id: coachId }, update: data, create: { id: coachId, ...data } });
+    const setClauses = [];
+    const values = [];
+    let idx = 1;
+
+    const colMap = {
+      stripeCustomerId:    'stripe_customer_id',
+      stripeSubscriptionId:'stripe_subscription_id',
+      plan:                'plan',
+      planStatus:          'plan_status',
+      trialEndsAt:         'trial_ends_at',
+      subscribedAt:        'subscribed_at',
+      canceledAt:          'canceled_at',
+      updatedAt:           'updated_at',
+    };
+
+    for (const [key, col] of Object.entries(colMap)) {
+      if (data[key] !== undefined) {
+        setClauses.push(`${col} = $${idx}`);
+        values.push(data[key]);
+        idx++;
+      }
+    }
+
+    if (!setClauses.length) return;
+
+    values.push(coachId);
+    await query(
+      `UPDATE coaches SET ${setClauses.join(', ')} WHERE user_id = $${idx}`,
+      values
+    ).catch(err => console.error('[DB] upsertCoach error:', err.message));
   },
+
   async getCoachEmail(coachId) {
-    console.log(`[DB] getCoachEmail(${coachId})`);
-    // return await prisma.coachProfile.findUnique({ where: { id: coachId }, select: { email: true } });
-    return process.env.FALLBACK_ADMIN_EMAIL || null;
+    try {
+      const { rows } = await query(
+        `SELECT u.email FROM users u JOIN coaches c ON c.user_id = u.id WHERE c.user_id = $1 LIMIT 1`,
+        [coachId]
+      );
+      return rows[0]?.email || process.env.FALLBACK_ADMIN_EMAIL || null;
+    } catch {
+      return process.env.FALLBACK_ADMIN_EMAIL || null;
+    }
   },
+
   async getCoachEmailByCustomerId(customerId) {
-    console.log(`[DB] getCoachEmailByCustomerId(${customerId})`);
-    // return await prisma.coachProfile.findFirst({ where: { stripeCustomerId: customerId }, select: { email: true, id: true } });
+    try {
+      const { rows } = await query(
+        `SELECT u.email, c.user_id AS id FROM coaches c JOIN users u ON u.id = c.user_id WHERE c.stripe_customer_id = $1 LIMIT 1`,
+        [customerId]
+      );
+      if (rows[0]) return { email: rows[0].email, id: rows[0].id };
+    } catch {}
     return { email: process.env.FALLBACK_ADMIN_EMAIL || null, id: customerId };
   },
+
   async logPayment(data) {
-    console.log(`[DB] logPayment:`, JSON.stringify(data));
-    // await prisma.invoice.create({ data });
+    const { stripeCustomerId, stripeInvoiceId, amountPaid, currency, paidAt, status } = data;
+    await query(
+      `INSERT INTO payments (stripe_customer_id, stripe_invoice_id, amount_paid, currency, paid_at, status)
+       VALUES ($1,$2,$3,$4,$5,$6) ON CONFLICT (stripe_invoice_id) DO NOTHING`,
+      [stripeCustomerId, stripeInvoiceId, amountPaid, currency, paidAt, status]
+    ).catch(err => console.error('[DB] logPayment error:', err.message));
   },
 };
 

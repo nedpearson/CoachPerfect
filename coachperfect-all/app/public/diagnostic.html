@@ -690,22 +690,50 @@ function prevQuestion() {
   }
 }
 
-function captureEmail(e) {
+async function captureEmail(e) {
   e.preventDefault();
   const email = document.getElementById('resultEmail').value;
-  const scores = calculateScores();
 
-  // Save to localStorage (replace with API call)
-  const waitlist = JSON.parse(localStorage.getItem('cp_waitlist') || '[]');
-  waitlist.push({
-    email,
-    date: new Date().toISOString(),
-    scores: {
-      overall: scores.overall,
-      categories: scores.categories.map(c => ({ id: c.id, name: c.name, score: c.score }))
+  // Map current answers array to 0-indexed answer indices expected by the API.
+  // answers[] stores the selected option index (0-4) for each of the 48 questions.
+  const answerIndices = answers.map(a => (a !== null ? a : 0));
+
+  // Show loading state
+  const btn = e.target.querySelector('button[type="submit"]');
+  const originalText = btn ? btn.textContent : '';
+  if (btn) { btn.textContent = 'Saving…'; btn.disabled = true; }
+
+  try {
+    const API_URL = window.COACHPERFECT_API_URL || 'http://localhost:3002';
+    const res = await fetch(`${API_URL}/api/diagnostics/public/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email,
+        name: null,
+        businessName: null,
+        answers: answerIndices,
+      }),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      // Store diagnostic ID so results can be claimed later
+      localStorage.setItem('cp_last_diagnostic_id', data.diagnosticId);
+    } else {
+      // API unavailable — fall back to local storage so the user isn't blocked
+      const waitlist = JSON.parse(localStorage.getItem('cp_waitlist') || '[]');
+      waitlist.push({ email, date: new Date().toISOString(), overall: calculateScores().overall });
+      localStorage.setItem('cp_waitlist', JSON.stringify(waitlist));
     }
-  });
-  localStorage.setItem('cp_waitlist', JSON.stringify(waitlist));
+  } catch (_err) {
+    // Offline fallback
+    const waitlist = JSON.parse(localStorage.getItem('cp_waitlist') || '[]');
+    waitlist.push({ email, date: new Date().toISOString() });
+    localStorage.setItem('cp_waitlist', JSON.stringify(waitlist));
+  } finally {
+    if (btn) { btn.textContent = originalText; btn.disabled = false; }
+  }
 
   document.querySelector('.email-row').style.display = 'none';
   document.getElementById('emailSuccess').style.display = 'block';
