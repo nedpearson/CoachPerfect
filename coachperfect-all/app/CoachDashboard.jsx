@@ -12,6 +12,7 @@ import { NotificationCenter } from "./coach/NotificationCenter.jsx";
 import { ClientUploadsPanel } from "./coach/ClientUploadsPanel.jsx";
 import { AuditLog } from "./coach/AuditLog.jsx";
 import { ClientQRModal } from "./coach/ClientQRModal.jsx";
+import { PluginMarketplace } from "./coach/PluginMarketplace.jsx";
 
 export default function CoachDashboard() {
   const [mode, setMode] = useState("business");      // "business" | "personal"
@@ -47,6 +48,7 @@ export default function CoachDashboard() {
     { id: "notifications",   label: "Notifications",   icon: "🔔",  badge: unreadNotifs },
     { id: "ai",              label: "AI Agents",       icon: "🤖" },
     { id: "subscriptions",   label: "Subscriptions",   icon: "💳" },
+    { id: "plugins",         label: "Plugins",         icon: "🔌", badge: 2 },
     { id: "audit",           label: "Audit Log",       icon: "📋" },
   ];
 
@@ -126,10 +128,10 @@ export default function CoachDashboard() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
           <div>
             <h2 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: C.navy, fontFamily: "'DM Serif Display',Georgia,serif" }}>
-              {isPersonal ? "Good Morning, Meredith" : activeTab === "overview" ? "Business Dashboard" : activeTab === "documents" ? "Document Vault" : activeTab === "client-uploads" ? "Client Uploads" : activeTab === "messages" ? "Client Messages" : activeTab === "notifications" ? "Notification Center" : activeTab === "ai" ? "AI Command Center" : activeTab === "audit" ? "Audit Log" : "Subscriptions & Add-Ons"}
+              {isPersonal ? "Good Morning, Meredith" : activeTab === "overview" ? "Business Dashboard" : activeTab === "documents" ? "Document Vault" : activeTab === "client-uploads" ? "Client Uploads" : activeTab === "messages" ? "Client Messages" : activeTab === "notifications" ? "Notification Center" : activeTab === "ai" ? "AI Command Center" : activeTab === "audit" ? "Audit Log" : activeTab === "plugins" ? "Plugin Store" : "Subscriptions & Add-Ons"}
             </h2>
             <p style={{ margin: "3px 0 0", fontSize: 13, color: C.text }}>
-              {isPersonal ? "Your personal day at a glance." : activeTab === "overview" ? "Full view of your coaching practice." : activeTab === "documents" ? "Upload, store, and push documents to individual clients." : activeTab === "client-uploads" ? "Review and file documents your clients have uploaded." : activeTab === "messages" ? "Direct messaging with all clients in one place." : activeTab === "notifications" ? "All alerts, at-risk flags, AI items, and system messages." : activeTab === "ai" ? "Automated agents handling your coaching workflows." : activeTab === "audit" ? "Complete activity trail — every action by coach, client, and AI." : "Client subscription plans and add-on marketplace."}
+              {isPersonal ? "Your personal day at a glance." : activeTab === "overview" ? "Full view of your coaching practice." : activeTab === "documents" ? "Upload, store, and push documents to individual clients." : activeTab === "client-uploads" ? "Review and file documents your clients have uploaded." : activeTab === "messages" ? "Direct messaging with all clients in one place." : activeTab === "notifications" ? "All alerts, at-risk flags, AI items, and system messages." : activeTab === "ai" ? "Automated agents handling your coaching workflows." : activeTab === "audit" ? "Complete activity trail — every action by coach, client, and AI." : activeTab === "plugins" ? "Extend CoachPerfect with specialist AI tools — each adds value for clients and revenue for you." : "Client subscription plans and add-on marketplace."}
             </p>
           </div>
 
@@ -181,6 +183,10 @@ export default function CoachDashboard() {
 
         {!isPersonal && activeTab === "subscriptions" && (
           <SubscriptionPanel onOpenAddon={addon => openAddon(addon)} />
+        )}
+
+        {!isPersonal && activeTab === "plugins" && (
+          <PluginMarketplace />
         )}
 
         {!isPersonal && activeTab === "audit" && (

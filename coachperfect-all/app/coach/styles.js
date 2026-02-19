@@ -186,5 +186,7 @@ export const SUBSCRIPTION_ADDONS = [
   { id: "priority-support", name: "Priority Support Upgrade", price: "$49/mo", description: "4-hour response time + phone support + dedicated success manager", icon: "\u{1F4DE}", available: "Starter+", purchased: 0 },
   { id: "certification", name: "CoachPerfect Certification", price: "$495 one-time", description: "Official certification program — featured in coach directory, badge on profile", icon: "\u{1F393}", available: "All", purchased: 0 },
   { id: "featured-listing", name: "Featured Directory Listing", price: "$29/mo", description: "Priority placement in CoachPerfect's coach directory with enhanced profile", icon: "\u2B50", available: "All", purchased: 0 },
-  { id: "exit-readiness", name: "Exit Readiness Module", price: "$99/mo", description: "Business valuation tools, exit planning frameworks, buyer readiness scoring", icon: "\u{1F680}", available: "Business+", purchased: 0 },
+  { id: "exit-readiness",       name: "Exit Readiness Module",   price: "$99/mo",  description: "Business valuation tools, exit planning frameworks, buyer readiness scoring", icon: "\u{1F680}", available: "Business+", purchased: 0 },
+  { id: "forensic-cpa-ai",     name: "Forensic CPA AI",          price: "$49/mo",  description: "AI flags duplicate payments, unusual spikes, and cash-flow anomalies. Generates forensic summary for session use.", icon: "\u{1F50D}", available: "Professional+", purchased: 0 },
+  { id: "ai-financial-advisor", name: "AI Financial Advisor",     price: "$39/mo",  description: "Cash-flow forecasts, P&L analysis, runway calculations, and branded advisor reports pushed to client.", icon: "\u{1F4CA}", available: "Professional+", purchased: 0 },
 ];

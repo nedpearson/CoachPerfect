@@ -19,7 +19,10 @@ const ADDONS = {
   'priority-support': { name: 'Priority Support',         priceCents:  4900, minPlan: 'starter' },
   'certification': { name: 'CoachPerfect Certification',  priceCents: 49500, minPlan: 'starter' },
   'featured-listing': { name: 'Featured Directory Listing', priceCents: 2900, minPlan: 'starter' },
-  'exit-readiness':  { name: 'Exit Readiness Module',     priceCents:  9900, minPlan: 'business' },
+  'exit-readiness':       { name: 'Exit Readiness Module',  priceCents:  9900, minPlan: 'business' },
+  // ── Plugin add-ons (add new entries here only) ─────────────────────────────
+  'forensic-cpa-ai':      { name: 'Forensic CPA AI',         priceCents:  4900, minPlan: 'professional' },
+  'ai-financial-advisor': { name: 'AI Financial Advisor',     priceCents:  3900, minPlan: 'professional' },
 };
 
 module.exports = function subscriptionRoutes(db) {
