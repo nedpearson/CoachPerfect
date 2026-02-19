@@ -357,10 +357,56 @@ function ClientKPIs() {
   );
 }
 
+// ─── MESSAGE COACH MODAL ─────────────────────────────────────────────────────────
+function MessageCoachModal({ isOpen, onClose }) {
+  const [msg, setMsg] = useState("");
+  const [sent, setSent] = useState(false);
+  if (!isOpen) return null;
+  const send = () => {
+    if (!msg.trim()) return;
+    setSent(true);
+    setTimeout(() => { setSent(false); setMsg(""); onClose(); }, 1600);
+  };
+  return (
+    <div style={{ position: "fixed", inset: 0, zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div onClick={onClose} style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.4)" }} />
+      <div style={{ position: "relative", width: 460, maxWidth: "92vw", background: C.white, borderRadius: 16, padding: 28, boxShadow: "0 24px 64px rgba(0,0,0,0.18)" }}>
+        {sent ? (
+          <div style={{ textAlign: "center", padding: "36px 0" }}>
+            <div style={{ fontSize: 48, marginBottom: 10 }}>✅</div>
+            <div style={{ fontSize: 19, fontWeight: 700, color: C.navy, fontFamily: "'DM Serif Display',Georgia,serif" }}>Message Sent!</div>
+            <div style={{ fontSize: 13, color: C.text, marginTop: 6 }}>{CLIENT.coachName} will reply soon.</div>
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div style={{ width: 38, height: 38, borderRadius: "50%", background: C.navy, color: C.gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 13, fontWeight: 700 }}>{CLIENT.coachAvatar}</div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.navy }}>Message {CLIENT.coachName}</div>
+                  <div style={{ fontSize: 11, color: C.text }}>Executive Coach · Usually replies within 24 hours</div>
+                </div>
+              </div>
+              <button onClick={onClose} style={{ background: "none", border: "none", fontSize: 20, cursor: "pointer", color: C.text }}>✕</button>
+            </div>
+            <textarea value={msg} onChange={e => setMsg(e.target.value)} placeholder="Type your message..."
+              style={{ width: "100%", minHeight: 120, padding: 12, borderRadius: 10, border: `1px solid ${C.border}`, fontSize: 13, color: C.navy, fontFamily: "inherit", resize: "vertical", lineHeight: 1.5, marginBottom: 14 }} />
+            <button onClick={send} disabled={!msg.trim()}
+              style={{ width: "100%", padding: 13, borderRadius: 10, border: "none", background: msg.trim() ? C.navy : "#d1d5db", color: C.white, fontSize: 14, fontWeight: 700, cursor: msg.trim() ? "pointer" : "default" }}>
+              Send Message
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN CLIENT DASHBOARD ───────────────────────────────────────────────────────
 export default function ClientDashboard() {
   const [tab, setTab] = useState("overview");
   const [notifOpen, setNotifOpen] = useState(false);
+  const [msgOpen, setMsgOpen] = useState(false);
   const unreadDocs = CLIENT_DOCUMENTS.filter(d => !d.viewed).length;
   const urgentCount = CLIENT_ALERTS.filter(a => a.type === "task" || a.type === "document").length;
 
@@ -446,12 +492,15 @@ export default function ClientDashboard() {
               Your coaching journey with {CLIENT.coachName} · {CLIENT.engagement} · Member since {CLIENT.memberSince}
             </p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 8, background: C.white, border: `1px solid ${C.border}` }}>
-            <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.navy, color: C.gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700 }}>{CLIENT.coachAvatar}</div>
-            <div>
-              <div style={{ fontSize: 11, fontWeight: 600, color: C.navy }}>Your Coach</div>
-              <div style={{ fontSize: 10, color: C.text }}>{CLIENT.coachName}</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "8px 14px", borderRadius: 8, background: C.white, border: `1px solid ${C.border}` }}>
+              <div style={{ width: 28, height: 28, borderRadius: "50%", background: C.navy, color: C.gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 10, fontWeight: 700 }}>{CLIENT.coachAvatar}</div>
+              <div>
+                <div style={{ fontSize: 11, fontWeight: 600, color: C.navy }}>Your Coach</div>
+                <div style={{ fontSize: 10, color: C.text }}>{CLIENT.coachName}</div>
+              </div>
             </div>
+            <button onClick={() => setMsgOpen(true)} style={{ padding: "8px 14px", borderRadius: 8, background: C.navy, color: C.white, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>💬 Message</button>
           </div>
         </div>
 
@@ -510,7 +559,7 @@ export default function ClientDashboard() {
                   <div style={{ width: 60, height: 60, borderRadius: "50%", background: C.navy, color: C.gold, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20, fontWeight: 700, margin: "0 auto 10px" }}>{CLIENT.coachAvatar}</div>
                   <div style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>{CLIENT.coachName}</div>
                   <div style={{ fontSize: 12, color: C.text, marginTop: 2 }}>Executive Coach</div>
-                  <button style={{ marginTop: 14, padding: "9px 22px", borderRadius: 8, background: C.navy, color: C.white, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Message Coach</button>
+                  <button onClick={() => setMsgOpen(true)} style={{ marginTop: 14, padding: "9px 22px", borderRadius: 8, background: C.navy, color: C.white, border: "none", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>💬 Message Coach</button>
                 </div>
               </Card>
               <WinsSection />
@@ -527,6 +576,7 @@ export default function ClientDashboard() {
       </footer>
 
       <NotifDrawer isOpen={notifOpen} onClose={() => setNotifOpen(false)} />
+      <MessageCoachModal isOpen={msgOpen} onClose={() => setMsgOpen(false)} />
     </div>
   );
 }

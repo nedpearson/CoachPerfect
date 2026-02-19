@@ -159,6 +159,25 @@ export const AI_QUEUE = [
   { id: 6, agent: "Onboarding Agent", action: "Completed onboarding sequence for James Patterson", status: "auto_completed", time: "5d ago", clientId: 6 },
 ];
 
+export const MESSAGES = {
+  1: [
+    { id: 1, from: "client", text: "Hey Meredith, just finished the Q4 financials review. A few questions for Thursday!", time: "2:14 PM", date: "Today", read: true },
+    { id: 2, from: "coach", text: "Great timing! Write them down and we'll tackle them in order. Also review the action plan I uploaded.", time: "2:31 PM", date: "Today", read: true },
+    { id: 3, from: "client", text: "Will do. Quick one — should I bring the P&L or just the summary?", time: "3:05 PM", date: "Today", read: false },
+  ],
+  2: [
+    { id: 4, from: "coach", text: "Delaine, great work on the roundtable prep! Your framing of the growth thesis was sharp.", time: "9:20 AM", date: "Yesterday", read: true },
+    { id: 5, from: "client", text: "Thank you! I felt more confident using the structure you taught. Can we do another mock run before the real thing?", time: "10:45 AM", date: "Yesterday", read: true },
+  ],
+  3: [
+    { id: 6, from: "coach", text: "Manville — checking in on your overdue items. What's blocking you?", time: "11:00 AM", date: "Feb 17", read: true },
+    { id: 7, from: "client", text: "Honestly been slammed. Will get to the SOPs by Friday I promise.", time: "4:22 PM", date: "Feb 17", read: true },
+  ],
+  5: [
+    { id: 8, from: "coach", text: "Sarah, I'm a bit worried we haven't connected in a while. Want to schedule a quick 20-min check-in this week?", time: "8:00 AM", date: "Feb 15", read: false },
+  ],
+};
+
 export const SUBSCRIPTION_ADDONS = [
   { id: "bh-cert", name: "Business Health Certificate", price: "$250-500/yr", description: "Branded certificate proving business health score — clients can display to investors, partners, lenders", icon: "\u{1F3C6}", available: "Professional+", purchased: 1 },
   { id: "360-feedback", name: "360\u00B0 Feedback Extra Slots", price: "$19/mo", description: "Additional 10-pack of 360 rater slots for deeper multi-rater assessments", icon: "\u{1F504}", available: "Professional+", purchased: 2 },
