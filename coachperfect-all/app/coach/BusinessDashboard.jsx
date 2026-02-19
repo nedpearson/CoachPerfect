@@ -9,7 +9,7 @@ import {
 } from "./components.jsx";
 
 // ─── CLIENT DETAIL PANEL ────────────────────────────────────────────────────────
-function ClientDetailPanel({ client, onClose, onPushTask, onSendReminder, onUploadDoc, onPushDoc }) {
+function ClientDetailPanel({ client, onClose, onPushTask, onSendReminder, onUploadDoc, onPushDoc, onShowQR }) {
   if (!client) return null;
   const completion = Math.round((client.tasksCompleted / client.totalTasks) * 100);
   const hColor = client.health === "green" ? C.success : client.health === "yellow" ? C.warning : C.danger;
@@ -58,6 +58,7 @@ function ClientDetailPanel({ client, onClose, onPushTask, onSendReminder, onUplo
           { label: "🔔 Reminder", fn: () => onSendReminder(client), bg: C.gold, color: C.navy },
           { label: "⬆ Upload Doc", fn: () => onUploadDoc(client), bg: C.cream, color: C.navy },
           { label: "📤 Push Doc", fn: () => onPushDoc(client), bg: C.cream, color: C.navy },
+          { label: "📱 Share QR", fn: () => onShowQR && onShowQR(client), bg: "#f97316", color: C.white },
         ].map((b, i) => (
           <button key={i} onClick={b.fn} style={{ flex: 1, padding: "8px 10px", borderRadius: 8, background: b.bg, color: b.color, border: `1px solid ${C.border}`, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{b.label}</button>
         ))}
@@ -67,7 +68,7 @@ function ClientDetailPanel({ client, onClose, onPushTask, onSendReminder, onUplo
 }
 
 // ─── BUSINESS DASHBOARD ──────────────────────────────────────────────────────────
-export function BusinessDashboard({ onPushTask, onSendReminder, onUploadDoc, onPushDoc, onNewClient }) {
+export function BusinessDashboard({ onPushTask, onSendReminder, onUploadDoc, onPushDoc, onNewClient, onShowQR }) {
   const [selectedClientId, setSelectedClientId] = useState(null);
   const client = CLIENTS.find(c => c.id === selectedClientId);
   const activeClients = CLIENTS.filter(c => c.status === "active").length;
@@ -90,7 +91,7 @@ export function BusinessDashboard({ onPushTask, onSendReminder, onUploadDoc, onP
       {client && (
         <ClientDetailPanel client={client} onClose={() => setSelectedClientId(null)}
           onPushTask={onPushTask} onSendReminder={onSendReminder}
-          onUploadDoc={onUploadDoc} onPushDoc={onPushDoc} />
+          onUploadDoc={onUploadDoc} onPushDoc={onPushDoc} onShowQR={onShowQR} />
       )}
 
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 18 }}>
@@ -150,6 +151,7 @@ export function BusinessDashboard({ onPushTask, onSendReminder, onUploadDoc, onP
                             <button onClick={() => onPushTask(c)} title="Push Task" style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${C.border}`, background: C.white, cursor: "pointer", fontSize: 11 }}>📋</button>
                             <button onClick={() => onSendReminder(c)} title="Reminder" style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${C.border}`, background: C.white, cursor: "pointer", fontSize: 11 }}>🔔</button>
                             <button onClick={() => onUploadDoc(c)} title="Upload Doc" style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid ${C.border}`, background: C.white, cursor: "pointer", fontSize: 11 }}>📁</button>
+                            <button onClick={() => onShowQR && onShowQR(c)} title="Share QR" style={{ width: 26, height: 26, borderRadius: 5, border: `1px solid #f9731640`, background: "#fff7f0", cursor: "pointer", fontSize: 11 }}>📱</button>
                           </div>
                         </td>
                       </tr>

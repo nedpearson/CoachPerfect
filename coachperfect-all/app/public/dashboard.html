@@ -758,28 +758,34 @@ function connectDashboard() {
 // ═══════════════════════════════════════════════════
 
 async function init() {
-  // Fetch server info
+  // Set generating state
+  document.getElementById('installUrlDisplay').textContent = 'Generating...';
+  document.getElementById('clientUrlDisplay').textContent = 'Generating...';
+
+  let coachUrl, clientUrl;
+
   try {
-    const res = await fetch('/api/qr-data');
+    // Try to get real LAN IP from mobile sync server
+    const res = await fetch('/api/qr-data', { signal: AbortSignal.timeout(3000) });
+    if (!res.ok) throw new Error('non-200');
     const data = await res.json();
-
-    const installUrl = data.installUrl;
-    const clientUrl = data.installUrl + '?mode=client';
-
-    document.getElementById('installUrlDisplay').textContent = installUrl;
-    document.getElementById('clientUrlDisplay').textContent = clientUrl;
-
-    generateQR(document.getElementById('qrCoach'), installUrl);
-    generateQR(document.getElementById('qrClient'), clientUrl);
-
+    coachUrl  = data.installUrl;
+    clientUrl = data.installUrl + '?mode=client';
+    addLog('✅', 'QR URLs loaded from sync server');
   } catch (e) {
-    // Fallback to current host
-    const url = `${location.protocol}//${location.host}`;
-    document.getElementById('installUrlDisplay').textContent = url;
-    document.getElementById('clientUrlDisplay').textContent = url + '?mode=client';
-    generateQR(document.getElementById('qrCoach'), url);
-    generateQR(document.getElementById('qrClient'), url + '?mode=client');
+    // Fallback: use current page origin (works for LAN share when served correctly)
+    coachUrl  = location.origin || `${location.protocol}//${location.host}`;
+    clientUrl = coachUrl + '?mode=client';
+    addLog('⚠️', 'Sync server offline — QR uses current host');
   }
+
+  // Update URL displays
+  document.getElementById('installUrlDisplay').textContent = coachUrl;
+  document.getElementById('clientUrlDisplay').textContent  = clientUrl;
+
+  // Generate both QR codes
+  generateQR(document.getElementById('qrCoach'),  coachUrl);
+  generateQR(document.getElementById('qrClient'), clientUrl);
 
   // Connect to sync server
   connectDashboard();

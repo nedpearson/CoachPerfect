@@ -11,6 +11,7 @@ import { MessagesPanel } from "./coach/MessagesPanel.jsx";
 import { NotificationCenter } from "./coach/NotificationCenter.jsx";
 import { ClientUploadsPanel } from "./coach/ClientUploadsPanel.jsx";
 import { AuditLog } from "./coach/AuditLog.jsx";
+import { ClientQRModal } from "./coach/ClientQRModal.jsx";
 
 export default function CoachDashboard() {
   const [mode, setMode] = useState("business");      // "business" | "personal"
@@ -22,6 +23,7 @@ export default function CoachDashboard() {
   const [docModal, setDocModal] = useState({ open: false, mode: "upload", client: null });
   const [addonModal, setAddonModal] = useState({ open: false, addon: null, clientName: null });
   const [newClientOpen, setNewClientOpen] = useState(false);
+  const [qrModal, setQrModal] = useState({ open: false, client: null });
 
   const isPersonal = mode === "personal";
   const alerts = isPersonal ? PERSONAL_ALERTS : BUSINESS_ALERTS;
@@ -35,6 +37,7 @@ export default function CoachDashboard() {
   const openUpload = (client) => setDocModal({ open: true, mode: "upload", client });
   const openPushDoc = (client) => setDocModal({ open: true, mode: "push", client });
   const openAddon = (addon, clientName = null) => setAddonModal({ open: true, addon, clientName });
+  const openQR    = (client) => setQrModal({ open: true, client });
 
   const bizTabs = [
     { id: "overview",        label: "Overview",        icon: "📊" },
@@ -153,7 +156,7 @@ export default function CoachDashboard() {
           <BusinessDashboard
             onPushTask={openTask} onSendReminder={openReminder}
             onUploadDoc={openUpload} onPushDoc={openPushDoc}
-            onNewClient={() => setNewClientOpen(true)} />
+            onNewClient={() => setNewClientOpen(true)} onShowQR={openQR} />
         )}
 
         {!isPersonal && activeTab === "documents" && (
@@ -212,6 +215,10 @@ export default function CoachDashboard() {
         addon={addonModal.addon} clientName={addonModal.clientName} />
 
       <NewClientModal isOpen={newClientOpen} onClose={() => setNewClientOpen(false)} />
+
+      <ClientQRModal
+        isOpen={qrModal.open} onClose={() => setQrModal(p => ({ ...p, open: false }))}
+        client={qrModal.client} />
     </div>
   );
 }
