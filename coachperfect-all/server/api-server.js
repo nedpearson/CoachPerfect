@@ -76,12 +76,32 @@ const documentRoutes     = require('./api/routes-documents')(db);
 const notificationRoutes = require('./api/routes-notifications')(db, wsBroadcast);
 const aiRoutes           = require('./api/routes-ai')(db);
 const subscriptionRoutes = require('./api/routes-subscriptions')(db);
+const pluginRoutes       = require('./api/routes-plugins')(db);
 
 app.use('/api', clientRoutes);
 app.use('/api', documentRoutes);
 app.use('/api', notificationRoutes);
 app.use('/api', aiRoutes);
 app.use('/api', subscriptionRoutes);
+app.use('/api', pluginRoutes);
+
+// ─── QR DATA — coach install URL + per-client URLs ────────────────────────────
+// Set PUBLIC_URL in .env to your deployed domain; falls back to local IP.
+app.get('/api/qr-data', (req, res) => {
+  const publicUrl = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3002}`;
+  res.json({
+    installUrl:     publicUrl,
+    clientUrl:      `${publicUrl}?mode=client`,
+    coachUrl:       publicUrl,
+    getClientUrl:   (clientId) => `${publicUrl}?mode=client&clientId=${clientId}`,
+  });
+});
+
+// Per-client share URL (used by QR modal)
+app.get('/api/qr-data/client/:clientId', (req, res) => {
+  const publicUrl = process.env.PUBLIC_URL || `http://localhost:${process.env.PORT || 3002}`;
+  res.json({ url: `${publicUrl}?mode=client&clientId=${req.params.clientId}` });
+});
 
 // ─── HEALTH CHECK ─────────────────────────────────────────────────────────────
 app.get('/api/health', (req, res) => {
