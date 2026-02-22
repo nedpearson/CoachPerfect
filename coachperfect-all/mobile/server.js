@@ -275,18 +275,15 @@ function broadcast(msg, excludeDeviceId) {
 
 httpServer.listen(HTTP_PORT, '0.0.0.0', () => {
   console.log('');
-  console.log('  ┌─────────────────────────────────────────────┐');
-  console.log('  │                                             │');
-  console.log('  │   🟠  Coach Perfect Mobile Server                │');
-  console.log('  │                                             │');
-  console.log(`  │   Local:   http://localhost:${HTTP_PORT}            │`);
-  console.log(`  │   Network: http://${LOCAL_IP}:${HTTP_PORT}      │`);
-  console.log(`  │   Sync:    ws://${LOCAL_IP}:${WS_PORT}       │`);
-  console.log('  │                                             │');
-  console.log('  │   📱 Scan QR code on dashboard to install   │');
-  console.log('  │   📡 Devices on same WiFi sync auto         │');
-  console.log('  │   📴 Works fully offline after first load   │');
-  console.log('  │                                             │');
-  console.log('  └─────────────────────────────────────────────┘');
+  console.log('  Coach Perfect Mobile Server');
+  console.log('  ─────────────────────────────────────────────');
+  console.log(`  Local:   http://localhost:${HTTP_PORT}`);
+  console.log(`  Network: http://${LOCAL_IP}:${HTTP_PORT}`);
+  console.log(`  Sync:    ws://${LOCAL_IP}:${WS_PORT}`);
+  console.log('  ─────────────────────────────────────────────');
+  console.log('  Scan QR code on dashboard to install');
+  console.log('  Devices on same WiFi sync automatically');
+  console.log('  Works fully offline after first load');
+  console.log('  ─────────────────────────────────────────────');
   console.log('');
 });

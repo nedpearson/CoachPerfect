@@ -387,7 +387,7 @@ const templates = {
       <h2>This Month's Highlights</h2>
       <ul>
         <li><strong style="color:#eaeaf0;">${data.sessionsCompleted} sessions</strong> completed (${data.attendanceRate}% attendance)</li>
-        <li><strong style="color:#eaeaf0;">${data.tasksCompleted} of ${data.totalTasks} tasks</strong> completed (${Math.round(data.tasksCompleted/data.totalTasks*100)}%)</li>
+        <li><strong style="color:#eaeaf0;">${data.tasksCompleted} of ${data.totalTasks} tasks</strong> completed (${data.totalTasks > 0 ? Math.round(data.tasksCompleted / data.totalTasks * 100) : 0}%)</li>
         <li><strong style="color:#eaeaf0;">${data.winsLogged} wins</strong> captured</li>
         ${data.topImprovement ? `<li>Biggest gain: <strong style="color:#22c55e;">${data.topImprovement.name} +${data.topImprovement.change} pts</strong></li>` : ''}
       </ul>

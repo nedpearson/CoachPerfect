@@ -318,10 +318,49 @@ app.post('/webhooks/stripe', async (req, res) => {
 });
 
 // ═══════════════════════════════════════════════════
+// USAGE REPORTING — Report metered API usage
+// ═══════════════════════════════════════════════════
+
+app.post('/api/usage', async (req, res) => {
+  try {
+    const { coachId, subscriptionItemId, quantity } = req.body;
+
+    if (!coachId || !subscriptionItemId) {
+      return res.status(400).json({ error: 'coachId and subscriptionItemId required' });
+    }
+
+    // Create a usage record for metered billing
+    const usageRecord = await stripe.subscriptionItems.createUsageRecord(
+      subscriptionItemId,
+      {
+        quantity: quantity || 1,
+        timestamp: Math.floor(Date.now() / 1000),
+        action: 'increment',
+      }
+    );
+
+    res.json({ recorded: true, usageRecord });
+
+  } catch (err) {
+    console.error('[Usage Error]', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ═══════════════════════════════════════════════════
 // STRIPE SETUP HELPER — Run Once to Create Products
 // ═══════════════════════════════════════════════════
 
-app.post('/api/setup-stripe', async (req, res) => {
+// Middleware: require SETUP_SECRET header to prevent unauthorized execution
+function requireSetupSecret(req, res, next) {
+  const secret = req.headers['x-setup-secret'];
+  if (!process.env.SETUP_SECRET || secret !== process.env.SETUP_SECRET) {
+    return res.status(401).json({ error: 'Unauthorized — provide x-setup-secret header' });
+  }
+  next();
+}
+
+app.post('/api/setup-stripe', requireSetupSecret, async (req, res) => {
   try {
     const results = {};
 
@@ -355,13 +394,13 @@ app.post('/api/setup-stripe', async (req, res) => {
       });
       results.prices[`${cfg.plan}_monthly`] = monthlyPrice.id;
 
-      // Annual
+      // Annual — charge once per year at monthly_rate × 12
       if (cfg.annual) {
         const annualPrice = await stripe.prices.create({
           product: product.id,
-          unit_amount: cfg.annual,
+          unit_amount: cfg.annual * 12,
           currency: 'usd',
-          recurring: { interval: 'month' },
+          recurring: { interval: 'year' },
           metadata: { plan: cfg.plan, interval: 'annual' },
           nickname: `${cfg.plan} Annual`,
         });

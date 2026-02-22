@@ -1206,7 +1206,7 @@ async function queueChange(action, store, data) {
 function getDeviceId() {
   let id = localStorage.getItem('coachperfect_device_id');
   if (!id) {
-    id = 'dev_' + Math.random().toString(36).substr(2, 9);
+    id = 'dev_' + Math.random().toString(36).slice(2, 11);
     localStorage.setItem('coachperfect_device_id', id);
   }
   return id;
@@ -1556,7 +1556,7 @@ function updateSyncUI(status) {
   dot.className = 'sync-dot';
   switch (status) {
     case 'connected':
-      dot.classList.add(''); // green default
+      // sync-dot default color (green) is set by CSS — no extra class needed
       label.textContent = 'Connected';
       break;
     case 'syncing':

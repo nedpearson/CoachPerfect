@@ -23,6 +23,7 @@
       --green: #22c55e;
       --blue: #3b82f6;
       --purple: #a855f7;
+      --red: #ef4444;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -1388,6 +1389,13 @@ function adminLogout() {
   localStorage.removeItem('cp_admin');
   document.getElementById('adminBadge').style.display = 'none';
   document.getElementById('adminBar').classList.remove('active');
+  // Restore CTA buttons to their original state
+  document.querySelectorAll('.btn-ghost, .btn-primary').forEach(btn => {
+    if (btn.textContent.trim() === '✓ Active') {
+      btn.style.opacity = '';
+      btn.style.pointerEvents = '';
+    }
+  });
 }
 
 function isAdmin() {
