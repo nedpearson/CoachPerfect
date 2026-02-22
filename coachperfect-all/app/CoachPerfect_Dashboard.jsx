@@ -1,6 +1,14 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis } from "recharts";
 import { TrendingUp, TrendingDown, CheckCircle, AlertTriangle, FileText, Zap, Users, DollarSign, Target, Activity, Plus, BarChart3, Bell, ChevronRight } from "lucide-react";
+
+// ─── MOCK DATA FLAG ───────────────────────────────────────────────────────────
+// Set USE_MOCK_DATA = false and replace the data constants below with real API
+// calls before deploying to production.
+const USE_MOCK_DATA = true;
+if (USE_MOCK_DATA) {
+  console.warn('[CoachPerfect] Dashboard is displaying MOCK data. Set USE_MOCK_DATA = false to connect a real API.');
+}
 
 const C = { primary: "#1B2A4A", accent: "#D4A853", success: "#2D8659", warning: "#C17A28", danger: "#B04040", surface: "#F7F5F0", muted: "#6B7280", border: "#E5E2DB" };
 
@@ -45,7 +53,37 @@ const pipe = [
 const pColors = { critical: C.danger, high: C.warning, medium: C.primary, low: C.muted };
 const pipeColors = ["#5B7BA5", "#1B2A4A", "#D4A853", "#2D8659"];
 
-export default function CoachPerfectDash() {
+// ─── ERROR BOUNDARY ───────────────────────────────────────────────────────────
+class DashboardErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { error: null };
+  }
+
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ padding: 40, textAlign: 'center', fontFamily: 'system-ui, sans-serif' }}>
+          <h2 style={{ color: '#B04040' }}>Dashboard Error</h2>
+          <p style={{ color: '#6B7280', marginBottom: 20 }}>{this.state.error.message}</p>
+          <button
+            onClick={() => this.setState({ error: null })}
+            style={{ padding: '8px 20px', cursor: 'pointer', borderRadius: 7, border: '1px solid #E5E2DB' }}
+          >
+            Retry
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+function CoachPerfectDash() {
   const [tab, setTab] = useState("overview");
   const tabs = ["overview", "diagnostics", "tasks", "documents", "workflows", "analytics", "coaching"];
 
@@ -203,5 +241,13 @@ export default function CoachPerfectDash() {
         </div>
       </main>
     </div>
+  );
+}
+
+export default function CoachPerfectDashWithBoundary() {
+  return (
+    <DashboardErrorBoundary>
+      <CoachPerfectDash />
+    </DashboardErrorBoundary>
   );
 }

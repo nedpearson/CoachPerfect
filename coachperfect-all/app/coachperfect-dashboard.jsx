@@ -1,5 +1,13 @@
 import { useState } from "react";
 
+// ─── MOCK DATA FLAG ───────────────────────────────────────────────────────────
+// Set USE_MOCK_DATA = false and replace MOCK_DATA with real API calls before
+// deploying to production.
+const USE_MOCK_DATA = true;
+if (USE_MOCK_DATA) {
+  console.warn('[CoachPerfect] Dashboard is displaying MOCK data. Set USE_MOCK_DATA = false to connect a real API.');
+}
+
 const MOCK_DATA = {
   coach: { name: "Meredith Eicher", role: "Executive Coach" },
   summary: {

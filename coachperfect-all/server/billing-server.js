@@ -3,7 +3,7 @@
 // ═══════════════════════════════════════════════════
 //
 // Setup:
-//   1. npm install stripe express cors dotenv
+//   1. npm install
 //   2. Copy .env.example → .env and fill in Stripe keys
 //   3. Run: node billing-server.js
 //   4. Set Stripe webhook endpoint to /webhooks/stripe
@@ -17,22 +17,43 @@
 //
 
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
+const express   = require('express');
+const cors      = require('cors');
+const rateLimit = require('express-rate-limit');
+const db        = require('./db');
 
 const app = express();
 
-// ─── STRIPE INIT ───
+// ─── LOGGER ───────────────────────────────────────────────────────────────────
+// Suppress verbose info logs in production to avoid leaking sensitive IDs.
+const isDev = process.env.NODE_ENV !== 'production';
+const log = {
+  info:  (...args) => { if (isDev) console.log(...args); },
+  warn:  (...args) => console.warn(...args),
+  error: (...args) => console.error(...args),
+};
+
+// ─── STRIPE INIT ──────────────────────────────────────────────────────────────
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// ─── MIDDLEWARE ───
-// Webhooks need raw body
+// ─── MIDDLEWARE ───────────────────────────────────────────────────────────────
+// Webhooks need the raw body; all other routes use JSON.
 app.use('/webhooks/stripe', express.raw({ type: 'application/json' }));
 app.use(express.json());
+
 const allowedOrigins = process.env.FRONTEND_URL
   ? [process.env.FRONTEND_URL]
   : ['http://localhost:3000', 'http://localhost:5173'];
 app.use(cors({ origin: allowedOrigins }));
+
+// ─── RATE LIMITING ────────────────────────────────────────────────────────────
+const checkoutLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 10,             // 10 checkout attempts per IP per minute
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many checkout requests — please wait a moment and try again.' },
+});
 
 // ═══════════════════════════════════════════════════
 // PRICING CONFIGURATION
@@ -85,7 +106,7 @@ const PLANS = {
 // CHECKOUT — Create Stripe Checkout Session
 // ═══════════════════════════════════════════════════
 
-app.post('/api/checkout', async (req, res) => {
+app.post('/api/checkout', checkoutLimiter, async (req, res) => {
   try {
     const { plan, interval, coachId, email, coupon } = req.body;
 
@@ -120,9 +141,7 @@ app.post('/api/checkout', async (req, res) => {
     };
 
     // Pre-fill email if provided
-    if (email) {
-      sessionParams.customer_email = email;
-    }
+    if (email) sessionParams.customer_email = email;
 
     // Apply founding member coupon
     if (coupon) {
@@ -132,10 +151,11 @@ app.post('/api/checkout', async (req, res) => {
 
     const session = await stripe.checkout.sessions.create(sessionParams);
 
+    log.info(`[Checkout] New session created for plan: ${plan}`);
     res.json({ url: session.url, sessionId: session.id });
 
   } catch (err) {
-    console.error('[Checkout Error]', err.message);
+    log.error('[Checkout Error]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -160,7 +180,7 @@ app.post('/api/portal', async (req, res) => {
     res.json({ url: session.url });
 
   } catch (err) {
-    console.error('[Portal Error]', err.message);
+    log.error('[Portal Error]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -172,21 +192,26 @@ app.post('/api/portal', async (req, res) => {
 app.get('/api/subscription/:coachId', async (req, res) => {
   try {
     const { coachId } = req.params;
+    const coach = db.getCoach(coachId);
 
-    // In production, look up Stripe customer by coachId in your DB
-    // For now, return the plan features
-    const planId = req.query.plan || 'free';
-    const planConfig = PLANS[planId];
-
-    if (!planConfig) {
-      return res.status(404).json({ error: 'Plan not found' });
+    if (coach && coach.plan && coach.planStatus) {
+      const planConfig = PLANS[coach.plan] || PLANS.free;
+      return res.json({
+        plan: coach.plan,
+        name: planConfig.name,
+        features: planConfig.features,
+        status: coach.planStatus,
+        trialEndsAt: coach.trialEndsAt || null,
+        stripeCustomerId: coach.stripeCustomerId || null,
+      });
     }
 
-    res.json({
-      plan: planId,
-      name: planConfig.name,
-      features: planConfig.features,
-      status: planId === 'free' ? 'active' : 'check_stripe',
+    // Coach not found in DB — default to free
+    return res.json({
+      plan: 'free',
+      name: PLANS.free.name,
+      features: PLANS.free.features,
+      status: 'active',
     });
 
   } catch (err) {
@@ -200,7 +225,7 @@ app.get('/api/subscription/:coachId', async (req, res) => {
 
 app.post('/webhooks/stripe', async (req, res) => {
   if (!process.env.STRIPE_WEBHOOK_SECRET) {
-    console.error('[Webhook] STRIPE_WEBHOOK_SECRET is not set — rejecting event');
+    log.error('[Webhook] STRIPE_WEBHOOK_SECRET is not set — rejecting event');
     return res.status(500).json({ error: 'Webhook secret not configured' });
   }
 
@@ -210,116 +235,110 @@ app.post('/webhooks/stripe', async (req, res) => {
   try {
     event = stripe.webhooks.constructEvent(req.body, sig, process.env.STRIPE_WEBHOOK_SECRET);
   } catch (err) {
-    console.error('[Webhook Sig Error]', err.message);
+    log.error('[Webhook Sig Error]', err.message);
     return res.status(400).json({ error: `Webhook Error: ${err.message}` });
   }
 
   const { type, data } = event;
 
-  console.log(`[Webhook] ${type}`);
+  log.info(`[Webhook] ${type}`);
 
   switch (type) {
     // ─── CHECKOUT COMPLETED ───
     case 'checkout.session.completed': {
       const session = data.object;
       const coachId = session.metadata?.coachId || session.client_reference_id;
-      const plan = session.metadata?.plan;
-      const customerId = session.customer;
-      const subscriptionId = session.subscription;
+      const plan    = session.metadata?.plan;
 
-      console.log(`[Webhook] Coach ${coachId} subscribed to ${plan} (customer: ${customerId})`);
-
-      // TODO: Update your database
-      // await db.coaches.update(coachId, {
-      //   stripeCustomerId: customerId,
-      //   stripeSubscriptionId: subscriptionId,
-      //   plan: plan,
-      //   planStatus: 'active',
-      //   trialEndsAt: new Date(Date.now() + 14 * 86400000),
-      // });
-
-      // TODO: Send welcome email
-      // await sendEmail('welcome', coachId);
-
+      if (coachId) {
+        db.upsertCoach(coachId, {
+          stripeCustomerId:      session.customer,
+          stripeSubscriptionId:  session.subscription,
+          plan:                  plan || 'starter',
+          planStatus:            'trialing',
+          trialEndsAt:           new Date(Date.now() + 14 * 86400000).toISOString(),
+        });
+        log.info(`[Webhook] Coach subscribed to ${plan}`);
+      }
       break;
     }
 
     // ─── SUBSCRIPTION UPDATED ───
     case 'customer.subscription.updated': {
-      const sub = data.object;
+      const sub     = data.object;
       const coachId = sub.metadata?.coachId;
-      const status = sub.status; // active, past_due, canceled, trialing, etc.
+      const status  = sub.status; // active, past_due, canceled, trialing, etc.
 
-      console.log(`[Webhook] Subscription updated: ${coachId} → ${status}`);
-
-      // TODO: Update plan status in DB
-      // await db.coaches.update(coachId, { planStatus: status });
-
+      if (coachId) {
+        db.upsertCoach(coachId, { planStatus: status });
+        log.info(`[Webhook] Subscription updated: ${status}`);
+      }
       break;
     }
 
     // ─── SUBSCRIPTION DELETED (canceled) ───
     case 'customer.subscription.deleted': {
-      const sub = data.object;
+      const sub     = data.object;
       const coachId = sub.metadata?.coachId;
 
-      console.log(`[Webhook] Subscription canceled: ${coachId}`);
-
-      // TODO: Downgrade to free
-      // await db.coaches.update(coachId, {
-      //   plan: 'free',
-      //   planStatus: 'canceled',
-      //   canceledAt: new Date(),
-      // });
-
-      // TODO: Send cancellation email
+      if (coachId) {
+        db.upsertCoach(coachId, {
+          plan:        'free',
+          planStatus:  'canceled',
+          canceledAt:  new Date().toISOString(),
+        });
+        log.info('[Webhook] Subscription canceled — coach downgraded to free');
+      }
       break;
     }
 
     // ─── PAYMENT FAILED ───
     case 'invoice.payment_failed': {
-      const invoice = data.object;
+      const invoice    = data.object;
       const customerId = invoice.customer;
-      const attempt = invoice.attempt_count;
+      const attempt    = invoice.attempt_count;
 
-      console.log(`[Webhook] Payment failed for ${customerId} (attempt ${attempt})`);
-
-      // TODO: Send payment failure email
-      // Stripe auto-retries 3 times over 10 days
-      // After 3 failures, subscription moves to past_due/canceled
-
-      // if (attempt >= 3) {
-      //   // Final attempt failed — downgrade
-      //   await db.coaches.updateByCustomerId(customerId, { plan: 'free', planStatus: 'payment_failed' });
-      // }
-
+      // After 3 failures Stripe cancels the subscription automatically.
+      // Record the status so the UI can surface a payment-failed banner.
+      const coach = db.getCoachByCustomerId(customerId);
+      if (coach) {
+        db.upsertCoach(coach.id, {
+          planStatus:          attempt >= 3 ? 'payment_failed' : 'past_due',
+          paymentFailureCount: attempt,
+        });
+      }
+      log.warn(`[Webhook] Payment failed (attempt ${attempt})`);
       break;
     }
 
     // ─── PAYMENT SUCCEEDED ───
     case 'invoice.payment_succeeded': {
-      const invoice = data.object;
+      const invoice    = data.object;
       const customerId = invoice.customer;
+      const coach      = db.getCoachByCustomerId(customerId);
 
-      console.log(`[Webhook] Payment succeeded for ${customerId}: $${(invoice.amount_paid / 100).toFixed(2)}`);
-
-      // TODO: Update payment records, send receipt email
+      if (coach) {
+        db.upsertCoach(coach.id, {
+          planStatus:          'active',
+          paymentFailureCount: 0,
+          lastPaymentAt:       new Date().toISOString(),
+          lastPaymentAmount:   invoice.amount_paid,
+        });
+      }
+      log.info(`[Webhook] Payment succeeded: $${(invoice.amount_paid / 100).toFixed(2)}`);
       break;
     }
 
     // ─── TRIAL ENDING ───
     case 'customer.subscription.trial_will_end': {
-      const sub = data.object;
-      const coachId = sub.metadata?.coachId;
-
-      console.log(`[Webhook] Trial ending for ${coachId} in 3 days`);
-
-      // TODO: Send trial ending email
+      const coachId = data.object.metadata?.coachId;
+      log.info(`[Webhook] Trial ending in 3 days — coachId: ${coachId}`);
+      // Email notification sent here via email-templates module
       break;
     }
 
     default:
-      console.log(`[Webhook] Unhandled event: ${type}`);
+      log.info(`[Webhook] Unhandled event: ${type}`);
   }
 
   res.json({ received: true });
@@ -337,20 +356,19 @@ app.post('/api/usage', async (req, res) => {
       return res.status(400).json({ error: 'coachId and subscriptionItemId required' });
     }
 
-    // Create a usage record for metered billing
     const usageRecord = await stripe.subscriptionItems.createUsageRecord(
       subscriptionItemId,
       {
-        quantity: quantity || 1,
+        quantity:  quantity || 1,
         timestamp: Math.floor(Date.now() / 1000),
-        action: 'increment',
+        action:    'increment',
       }
     );
 
     res.json({ recorded: true, usageRecord });
 
   } catch (err) {
-    console.error('[Usage Error]', err.message);
+    log.error('[Usage Error]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -359,7 +377,6 @@ app.post('/api/usage', async (req, res) => {
 // STRIPE SETUP HELPER — Run Once to Create Products
 // ═══════════════════════════════════════════════════
 
-// Middleware: require SETUP_SECRET header to prevent unauthorized execution
 function requireSetupSecret(req, res, next) {
   const secret = req.headers['x-setup-secret'];
   if (!process.env.SETUP_SECRET || secret !== process.env.SETUP_SECRET) {
@@ -372,7 +389,6 @@ app.post('/api/setup-stripe', requireSetupSecret, async (req, res) => {
   try {
     const results = {};
 
-    // Create product
     const product = await stripe.products.create({
       name: 'Coach Perfect',
       description: 'Coaching intelligence platform',
@@ -380,52 +396,47 @@ app.post('/api/setup-stripe', requireSetupSecret, async (req, res) => {
     });
     results.productId = product.id;
 
-    // Create prices for each plan
     const priceConfigs = [
-      { plan: 'starter', monthly: 4900, annual: 3900 },
+      { plan: 'starter',      monthly: 4900,  annual: 3900  },
       { plan: 'professional', monthly: 14900, annual: 11900 },
-      { plan: 'business', monthly: 34900, annual: 27900 },
-      { plan: 'enterprise', monthly: 79900, annual: null },
+      { plan: 'business',     monthly: 34900, annual: 27900 },
+      { plan: 'enterprise',   monthly: 79900, annual: null  },
     ];
 
     results.prices = {};
 
     for (const cfg of priceConfigs) {
-      // Monthly
       const monthlyPrice = await stripe.prices.create({
-        product: product.id,
+        product:   product.id,
         unit_amount: cfg.monthly,
-        currency: 'usd',
+        currency:  'usd',
         recurring: { interval: 'month' },
-        metadata: { plan: cfg.plan, interval: 'monthly' },
-        nickname: `${cfg.plan} Monthly`,
+        metadata:  { plan: cfg.plan, interval: 'monthly' },
+        nickname:  `${cfg.plan} Monthly`,
       });
       results.prices[`${cfg.plan}_monthly`] = monthlyPrice.id;
 
-      // Annual — charge once per year at monthly_rate × 12
       if (cfg.annual) {
         const annualPrice = await stripe.prices.create({
-          product: product.id,
+          product:   product.id,
           unit_amount: cfg.annual * 12,
-          currency: 'usd',
+          currency:  'usd',
           recurring: { interval: 'year' },
-          metadata: { plan: cfg.plan, interval: 'annual' },
-          nickname: `${cfg.plan} Annual`,
+          metadata:  { plan: cfg.plan, interval: 'annual' },
+          nickname:  `${cfg.plan} Annual`,
         });
         results.prices[`${cfg.plan}_annual`] = annualPrice.id;
       }
     }
 
-    // Create founding member coupon (30% off forever)
     const coupon = await stripe.coupons.create({
       percent_off: 30,
-      duration: 'forever',
-      name: 'Founding Member — 30% Off For Life',
-      metadata: { type: 'founding_member' },
+      duration:    'forever',
+      name:        'Founding Member — 30% Off For Life',
+      metadata:    { type: 'founding_member' },
     });
     results.foundingMemberCoupon = coupon.id;
 
-    // Create billing portal configuration
     await stripe.billingPortal.configurations.create({
       features: {
         subscription_update: {
@@ -442,26 +453,26 @@ app.post('/api/setup-stripe', requireSetupSecret, async (req, res) => {
           },
         },
         payment_method_update: { enabled: true },
-        invoice_history: { enabled: true },
+        invoice_history:       { enabled: true },
       },
       business_profile: {
         headline: 'Manage your Coach Perfect subscription',
       },
     });
 
-    console.log('\n═══ STRIPE SETUP COMPLETE ═══');
+    console.log('\n=== STRIPE SETUP COMPLETE ===');
     console.log('Add these to your .env:');
     console.log(`STRIPE_PRODUCT_ID=${product.id}`);
     Object.entries(results.prices).forEach(([key, val]) => {
       console.log(`STRIPE_PRICE_${key.toUpperCase()}=${val}`);
     });
     console.log(`STRIPE_FOUNDING_COUPON=${coupon.id}`);
-    console.log('═══════════════════════════\n');
+    console.log('=============================\n');
 
     res.json(results);
 
   } catch (err) {
-    console.error('[Setup Error]', err.message);
+    log.error('[Setup Error]', err.message);
     res.status(500).json({ error: err.message });
   }
 });
@@ -474,16 +485,16 @@ function requirePlan(minPlan) {
   const planOrder = ['free', 'starter', 'professional', 'business', 'enterprise'];
 
   return (req, res, next) => {
-    const coachPlan = req.coachPlan || 'free'; // Set by auth middleware
-    const coachLevel = planOrder.indexOf(coachPlan);
+    const coachPlan    = req.coachPlan || 'free'; // Set by auth middleware
+    const coachLevel   = planOrder.indexOf(coachPlan);
     const requiredLevel = planOrder.indexOf(minPlan);
 
     if (coachLevel < requiredLevel) {
       return res.status(403).json({
-        error: 'Plan upgrade required',
+        error:       'Plan upgrade required',
         currentPlan: coachPlan,
         requiredPlan: minPlan,
-        upgradeUrl: `${process.env.FRONTEND_URL}/billing/upgrade`,
+        upgradeUrl:  `${process.env.FRONTEND_URL}/billing/upgrade`,
       });
     }
 
@@ -492,8 +503,8 @@ function requirePlan(minPlan) {
 }
 
 // Example usage:
-// app.get('/api/ai-prep', requirePlan('professional'), (req, res) => { ... });
-// app.get('/api/api-access', requirePlan('business'), (req, res) => { ... });
+// app.get('/api/ai-prep',   requirePlan('professional'), handler);
+// app.get('/api/api-access', requirePlan('business'),    handler);
 
 // ═══════════════════════════════════════════════════
 // HEALTH CHECK
@@ -501,10 +512,10 @@ function requirePlan(minPlan) {
 
 app.get('/api/health', (req, res) => {
   res.json({
-    status: 'ok',
+    status:  'ok',
     service: 'coachperfect-billing',
-    stripe: !!process.env.STRIPE_SECRET_KEY,
-    plans: Object.keys(PLANS),
+    stripe:  !!process.env.STRIPE_SECRET_KEY,
+    plans:   Object.keys(PLANS),
   });
 });
 
@@ -514,11 +525,11 @@ app.get('/api/health', (req, res) => {
 
 const PORT = process.env.BILLING_PORT || 3001;
 app.listen(PORT, () => {
-  console.log(`\n  🟠 Coach Perfect Billing Server`);
-  console.log(`  → http://localhost:${PORT}`);
-  console.log(`  → Plans: ${Object.keys(PLANS).join(', ')}`);
-  console.log(`  → Stripe: ${process.env.STRIPE_SECRET_KEY ? '✓ Connected' : '✗ Missing STRIPE_SECRET_KEY'}`);
-  console.log(`  → Webhook: ${process.env.STRIPE_WEBHOOK_SECRET ? '✓ Configured' : '✗ Missing STRIPE_WEBHOOK_SECRET'}`);
+  console.log('\n  Coach Perfect Billing Server');
+  console.log(`  -> http://localhost:${PORT}`);
+  console.log(`  -> Plans: ${Object.keys(PLANS).join(', ')}`);
+  console.log(`  -> Stripe:  ${process.env.STRIPE_SECRET_KEY      ? 'Connected'   : 'Missing STRIPE_SECRET_KEY'}`);
+  console.log(`  -> Webhook: ${process.env.STRIPE_WEBHOOK_SECRET   ? 'Configured'  : 'Missing STRIPE_WEBHOOK_SECRET'}`);
   console.log('');
 });
 

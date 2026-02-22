@@ -141,7 +141,40 @@ const httpServer = http.createServer((req, res) => {
 
 const wss = new WebSocketServer({ port: WS_PORT });
 const peers = new Map(); // deviceId -> ws
-const dataStore = {}; // In-memory sync state
+
+// ─── SYNC STATE PERSISTENCE ───────────────────────────────────────────────────
+// Persist sync state to disk so data survives server restarts.
+const SYNC_DATA_FILE = path.join(__dirname, 'data', 'sync-state.json');
+
+function loadSyncState() {
+  try {
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    if (!fs.existsSync(SYNC_DATA_FILE)) return {};
+    return JSON.parse(fs.readFileSync(SYNC_DATA_FILE, 'utf8'));
+  } catch (err) {
+    console.error('[Sync] Failed to load state from disk:', err.message);
+    return {};
+  }
+}
+
+function saveSyncState() {
+  try {
+    const tmp = SYNC_DATA_FILE + '.tmp';
+    fs.writeFileSync(tmp, JSON.stringify(dataStore));
+    fs.renameSync(tmp, SYNC_DATA_FILE);
+  } catch (err) {
+    console.error('[Sync] Failed to save state to disk:', err.message);
+  }
+}
+
+const dataStore = loadSyncState(); // Load persisted sync state on startup
+
+if (process.env.SYNC_SECRET) {
+  console.log('[Sync] WebSocket authentication: ENABLED');
+} else {
+  console.warn('[Sync] SYNC_SECRET not set — WebSocket connections are unauthenticated. Set SYNC_SECRET in .env for production.');
+}
 
 wss.on('connection', (ws, req) => {
   const clientIp = req.socket.remoteAddress;
@@ -155,6 +188,12 @@ wss.on('connection', (ws, req) => {
 
       switch (msg.type) {
         case 'HELLO':
+          // Validate sync secret if configured
+          if (process.env.SYNC_SECRET && msg.secret !== process.env.SYNC_SECRET) {
+            ws.send(JSON.stringify({ type: 'ERROR', message: 'Invalid sync secret — check SYNC_SECRET in server .env' }));
+            ws.close(1008, 'Unauthorized');
+            return;
+          }
           deviceId = msg.deviceId;
           peers.set(deviceId, ws);
           console.log(`[Sync] Device registered: ${deviceId} (${peers.size} peers)`);
@@ -180,6 +219,7 @@ wss.on('connection', (ws, req) => {
 
             // Broadcast to all OTHER peers
             broadcast(msg, deviceId);
+            saveSyncState();
           }
           break;
 
@@ -203,6 +243,7 @@ wss.on('connection', (ws, req) => {
 
             // Broadcast to all OTHER peers
             broadcast(msg, deviceId);
+            saveSyncState();
           }
           break;
 
@@ -231,6 +272,7 @@ wss.on('connection', (ws, req) => {
               stores: dataStore,
               deviceId: 'server'
             }, deviceId);
+            saveSyncState();
           }
           break;
 
