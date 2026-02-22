@@ -1,0 +1,31 @@
+# Environment variables — NEVER commit these
+.env
+.env.local
+.env.production
+.env.*.local
+
+# Dependencies
+node_modules/
+.npm
+
+# Build output
+dist/
+build/
+.next/
+
+# Email preview files generated at runtime
+emails/email-previews/*.html
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo

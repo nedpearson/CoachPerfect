@@ -29,7 +29,10 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // Webhooks need raw body
 app.use('/webhooks/stripe', express.raw({ type: 'application/json' }));
 app.use(express.json());
-app.use(cors({ origin: process.env.FRONTEND_URL || '*' }));
+const allowedOrigins = process.env.FRONTEND_URL
+  ? [process.env.FRONTEND_URL]
+  : ['http://localhost:3000', 'http://localhost:5173'];
+app.use(cors({ origin: allowedOrigins }));
 
 // ═══════════════════════════════════════════════════
 // PRICING CONFIGURATION
@@ -196,6 +199,11 @@ app.get('/api/subscription/:coachId', async (req, res) => {
 // ═══════════════════════════════════════════════════
 
 app.post('/webhooks/stripe', async (req, res) => {
+  if (!process.env.STRIPE_WEBHOOK_SECRET) {
+    console.error('[Webhook] STRIPE_WEBHOOK_SECRET is not set — rejecting event');
+    return res.status(500).json({ error: 'Webhook secret not configured' });
+  }
+
   const sig = req.headers['stripe-signature'];
   let event;
 
